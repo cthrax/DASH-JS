@@ -316,7 +316,7 @@ MPDParser.prototype.parsePeriod = function(periods,node)
 	{
 		attribValue = eval("MPD.period."+getKeyByIndex(MPD.period,i).toString());
 		if(node.hasAttribute(attribValue)) eval("this.pmpd.period[periods]." + getKeyByIndex(MPD.period,i).toString() + "= node.attributes.getNamedItem(attribValue).value");
-	//	console.log("pmpd.period["+periods+"]" + getKeyByIndex(MPD.period,i).toString() + "=" + eval("this.pmpd.period[periods]" + getKeyByIndex(MPD.period,i).toString()));
+//		console.log("pmpd.period["+periods+"]" + getKeyByIndex(MPD.period,i).toString() + "=" + eval("this.pmpd.period[periods]" + getKeyByIndex(MPD.period,i).toString()));
 	}
 							
 	// now check the adaptationsets ...

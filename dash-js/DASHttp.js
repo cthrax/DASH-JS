@@ -134,14 +134,14 @@ function _dashSourceOpen(buffer, presentation, video, mediaSource)
 	if(presentation.hasInitialSegment == false)
 	{
         	baseURL = presentation.baseURL;
-		_fetch_segment(presentation, (baseURL != 'undefined' ? presentation.baseURL : '') + adaptation._getNextChunkP(presentation, presentation.curSegment).src, video, adaptation._getNextChunk(presentation.curSegment).range, buffer);
+		_fetch_segment(presentation, (baseURL != undefined ? presentation.baseURL : '') + adaptation._getNextChunkP(presentation, presentation.curSegment).src, video, adaptation._getNextChunk(presentation.curSegment).range, buffer);
 	
 		if(presentation.curSegment > 0 ) presentation.curSegment = 1;
 		presentation.curSegment++;
 				
 	}else{
 		baseURL = presentation.baseURL;
-		_fetch_segment(presentation, (baseURL != 'undefined' ? presentation.baseURL : '') + adaptation.getInitialChunk(presentation).src, video, adaptation.getInitialChunk(presentation).range, buffer);
+		_fetch_segment(presentation, (baseURL != undefined ? presentation.baseURL : '') + adaptation.getInitialChunk(presentation).src, video, adaptation.getInitialChunk(presentation).range, buffer);
 		//presentation.curSegment++;
 
 	}
@@ -154,7 +154,7 @@ function _dashFetchSegmentBuffer(presentation, video, buffer)
         return; 
     }
     baseURL = presentation.baseURL;
-	_fetch_segment_for_buffer(presentation, (baseURL != 'undefined' ? presentation.baseURL : '') + adaptation._getNextChunkP(presentation, presentation.curSegment).src, video, adaptation._getNextChunk(presentation.curSegment).range, buffer);
+	_fetch_segment_for_buffer(presentation, (baseURL != undefined ? presentation.baseURL : '') + adaptation._getNextChunkP(presentation, presentation.curSegment).src, video, adaptation._getNextChunk(presentation.curSegment).range, buffer);
 	presentation.curSegment++;
 	
 }

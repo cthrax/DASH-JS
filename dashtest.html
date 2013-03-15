@@ -4,9 +4,9 @@
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 
 	<script src="dash-js/dashPlayerVars.js"></script>
-	<script src="dash-js/mediaSourceAPIAdaptation.js"></script>	
+	<script src="dash-js/mediaSourceAPIAdaptation.js"></script>
 	<script src="dash-js/fplot.js"></script>
-	<script src="dash-js/mpdParser.js"></script>	
+	<script src="dash-js/mpdParser.js"></script>
 	<script src="dash-js/bandwidth.js"></script>
 	<script src="dash-js/adaptationlogic.js"></script>
 	<script src="dash-js/rate_measurement.js"></script>
@@ -20,7 +20,7 @@
 	</head>
 	<body>
 	<h1> DASH-JS Showcase</h1>
-	This showcase will only work using Google Chrome with MediaSource API enabled (use chrome://flags to enable the API). 
+	This showcase will only work using Google Chrome with MediaSource API enabled (use chrome://flags to enable the API).
 <p>
     <br>
         Bandwidth in kbps (0=infinite[estimated]): <input type="text" id="bps" value="0"> <input type="button" value="Set" onClick="javascript:setBandwidth()"></p>
@@ -32,19 +32,19 @@
  		document.getElementById("bps").value = maxBandwidth/1024;
 		function setBandwidth()
             {
-                
+
                 mybps = parseInt(document.getElementById("bps").value)*1024;
                 maxBandwidth = mybps;
-                
+
             }
-		
-		 
-		
+
+
+
 		video = document.querySelector('video');
-		var dashPlayer = new DASHPlayer(video,"http://localhost/dash/bigbuckbunny_mp.mpd");
-		
-	
-		
+		var dashPlayer = new DASHPlayer(video,"h264_gop15_dash.mpd");
+
+
+
 		</script>
 	</body>
 </html>

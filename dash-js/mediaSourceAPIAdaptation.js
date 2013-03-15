@@ -48,7 +48,11 @@ function checkSourceError(videoTag)
 
 function sourceBufferAppend(mediaSource, id, data)
 {
-    mediaSource.sourceBuffers[id].append(data);
+    if (mediaSource.sourceBuffers[id] != undefined) {
+        mediaSource.sourceBuffers[id].append(data);
+    } else {
+        console.log("Attempting to append to non-existent buffer.");
+    }
 }
 
 
