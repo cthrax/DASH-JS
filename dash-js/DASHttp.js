@@ -1,7 +1,7 @@
 /*
  * DASHttp.js
  *****************************************************************************
- * Copyright (C) 2012 - 2013 Alpen-Adria-Universität Klagenfurt
+ * Copyright (C) 2012 - 2013 Alpen-Adria-Universitï¿½t Klagenfurt
  *
  * Created on: Feb 13, 2012
  * Authors: Benjamin Rainer <benjamin.rainer@itec.aau.at>
@@ -21,154 +21,146 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
- 
- var _timeID = 0;
- var _tmpvideo;
- var _cacheControl;
- 
-function DASHttp()
-{
-	
-	
-}
 
+function DASHttp(cacheControl, adaptation, bandwidth, dashPlayer) {
+    this._timeID = 0;
+    this._cacheControl = cacheControl;
+    this.dashPlayer = dashPlayer;
+    this.adaptation = adaptation;
+    this.myBandwidth = bandwidth;
+}
 
 // this method is used by the mediaSourceBuffer to push segments in
-function _push_segment_to_media_source_api(buffer, data)
-{
-    console.log("DASH-JS client: appending data of length: " + data.length + " to the Media Source Buffer with id: "+ buffer.id);
-    sourceBufferAppend(dashPlayer.MSE, buffer.id, data);
-   
-}
+DASHttp.prototype._push_segment_to_media_source_api = function (buffer, data) {
+    console.log("DASH-JS client: appending data of length: " + data.length
+            + " to the Media Source Buffer with id: " + buffer.id);
+    sourceBufferAppend(this.dashPlayer.mse, buffer.id, data, this.dashPlayer);
 
-function _fetch_segment(presentation, url, video, range, buffer)
-{
-	console.log('DASH JS Client fetching segment: ' + url);
-	var xhr = new XMLHttpRequest();
-	xhr.timeID = _timeID;
-	xhr.open('GET', url, true);
-	xhr.setRequestHeader('Cache-Control', _cacheControl);
-	if(range != null)
-	{
-		xhr.setRequestHeader('Range', 'bytes='+range);
-		console.log('DASH JS Client fetching byte range: ' + range);
-	}
-    
-	xhr.responseType = 'arraybuffer';
-    
-	//_tmpvideo = video;
-	xhr.onload = function(e)
-   		 {
-        
-     			    data = new Uint8Array(this.response);
-    			    mybps = endBitrateMeasurementByID(this.timeID,data.length);
-    			    myBandwidth.calcWeightedBandwidth(parseInt(mybps));
-    			    adaptation.switchRepresentation();
-    			    
-			    _push_segment_to_media_source_api(buffer, data);
-    			    
-			    if(presentation.curSegment >= presentation.segmentList.segments-1) video.webkitSourceEndOfStream(HTMLMediaElement.EOS_NO_ERROR);
-        
-   		 };
-	
-	beginBitrateMeasurementByID(this._timeID);
-	_timeID++;
-	xhr.send();
-}
+};
 
-
-function _fetch_segment_for_buffer(presentation, url, video, range, buffer)
-{
+DASHttp.prototype._fetch_segment = function(presentation, url, video, range, buffer) {
     console.log('DASH JS Client fetching segment: ' + url);
-	var xhr = new XMLHttpRequest();
-	xhr.timeID = _timeID;
-	xhr.open('GET', url, true);
-	xhr.setRequestHeader('Cache-Control', _cacheControl);
-	if(range != null)
-	{
-		xhr.setRequestHeader('Range', 'bytes='+range);
-		console.log('DASH JS Client fetching byte range: ' + range);
-	}
-	
-	xhr.responseType = 'arraybuffer';
-	xhr.buffer = buffer;
-	//_tmpvideo = video;
-	xhr.onload = function(e)
-	{
-		
-		data = new Uint8Array(this.response);
-		mybps = endBitrateMeasurementByID(this.timeID,data.length);
-		myBandwidth.calcWeightedBandwidth(parseInt(mybps));
-        
-		adaptation.switchRepresentation();      // <--- mod this, if you wanna change the adaptation behavior ... (e. g., include buffer state, ...)
-        
-     		   // push the data into our buffer
-       		buffer.push(data, 2);
-        
-        	if(presentation.curSegment >= presentation.segmentList.segments-1) buffer.streamEnded = true;
-        
-       		buffer.callback();
-		
-	};
-	
-	beginBitrateMeasurementByID(this._timeID);
-	_timeID++;
-	xhr.send();
-	
-}
-
-
-				
-function _dashSourceOpen(buffer, presentation, video, mediaSource)
-{
-	// check the parsed mpd
-	// fetch a representation and check whether selfinitialized or ...
-		
-	video.width = presentation.width;
-	video.height = presentation.height;
-
-	console.log("DASJ-JS: content type: " + presentation.mimeType + '; codecs="' + presentation.codecs + '"');
-	addSourceBuffer(mediaSource, buffer.id, presentation.mimeType + '; codecs="' + presentation.codecs + '"');
-	
-	
-	if(presentation.hasInitialSegment == false)
-	{
-        	baseURL = presentation.baseURL;
-		_fetch_segment(presentation, (baseURL != undefined ? presentation.baseURL : '') + adaptation._getNextChunkP(presentation, presentation.curSegment).src, video, adaptation._getNextChunk(presentation.curSegment).range, buffer);
-	
-		if(presentation.curSegment > 0 ) presentation.curSegment = 1;
-		presentation.curSegment++;
-				
-	}else{
-		baseURL = presentation.baseURL;
-		_fetch_segment(presentation, (baseURL != undefined ? presentation.baseURL : '') + adaptation.getInitialChunk(presentation).src, video, adaptation.getInitialChunk(presentation).range, buffer);
-		//presentation.curSegment++;
-
-	}
-			
-}
-
-function _dashFetchSegmentBuffer(presentation, video, buffer)
-{
-	if(presentation.curSegment >= presentation.segmentList.segments-1) {
-        return; 
+    var instance = this;
+    var xhr = new XMLHttpRequest();
+    xhr.timeID = this._timeID;
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader('Cache-Control', this._cacheControl);
+    if (range != null) {
+        xhr.setRequestHeader('Range', 'bytes=' + range);
+        console.log('DASH JS Client fetching byte range: ' + range);
     }
-    baseURL = presentation.baseURL;
-	_fetch_segment_for_buffer(presentation, (baseURL != undefined ? presentation.baseURL : '') + adaptation._getNextChunkP(presentation, presentation.curSegment).src, video, adaptation._getNextChunk(presentation.curSegment).range, buffer);
-	presentation.curSegment++;
-	
-}
 
+    xhr.responseType = 'arraybuffer';
 
-function _dashFetchSegmentAsynchron(buffer, callback)
-{
-	_dashFetchSegmentBuffer(adaptation.currentRepresentation, adaptation.mediaElement, buffer);
-}
- 
- 
-function initDASHttp(cacheControl)
-{
-	_timeID = 0;
-	_cacheControl = cacheControl;
-	
-}
+    // _tmpvideo = video;
+    xhr.onload = function(e) {
+
+        var data = new Uint8Array(this.response);
+        var mybps = endBitrateMeasurementByID(this.timeID, data.length);
+        instance.myBandwidth.calcWeightedBandwidth(parseInt(mybps));
+        instance.adaptation.switchRepresentation();
+
+        instance._push_segment_to_media_source_api(buffer, data);
+
+        if (presentation.curSegment >= presentation.segmentList.segments - 1
+                && video.webkitSourceEndOfStream != undefined) {
+            video.webkitSourceEndOfStream(HTMLMediaElement.EOS_NO_ERROR);
+        } else if (presentation.curSegment >= presentation.segmentList.segments - 1){
+            video.ended = true;
+        }
+
+    };
+
+    beginBitrateMeasurementByID(this._timeID);
+    this._timeID++;
+    xhr.send();
+};
+
+DASHttp.prototype._fetch_segment_for_buffer = function(presentation, url, video, range, buffer) {
+    console.log('DASH JS Client fetching segment: ' + url);
+    var instance = this;
+    var xhr = new XMLHttpRequest();
+    xhr.timeID = this._timeID;
+    xhr.open('GET', url, true);
+    xhr.setRequestHeader('Cache-Control', this._cacheControl);
+    if (range != null) {
+        xhr.setRequestHeader('Range', 'bytes=' + range);
+        console.log('DASH JS Client fetching byte range: ' + range);
+    }
+
+    xhr.responseType = 'arraybuffer';
+    xhr.buffer = buffer;
+    // _tmpvideo = video;
+    xhr.onload = function(e) {
+
+        var data = new Uint8Array(this.response);
+        var mybps = endBitrateMeasurementByID(this.timeID, data.length);
+        instance.myBandwidth.calcWeightedBandwidth(parseInt(mybps));
+
+        instance.adaptation.switchRepresentation(); // <--- mod this, if you wanna
+                                            // change the adaptation behavior
+                                            // ... (e. g., include buffer state,
+                                            // ...)
+
+        // push the data into our buffer
+        buffer.push(data, 2);
+
+        if (presentation.curSegment >= presentation.segmentList.segments - 1)
+            buffer.streamEnded = true;
+
+        buffer.callback();
+
+    };
+
+    beginBitrateMeasurementByID(this._timeID);
+    this._timeID++;
+    xhr.send();
+};
+
+DASHttp.prototype._dashSourceOpen = function(buffer, presentation, video, mediaSource) {
+    // check the parsed mpd
+    // fetch a representation and check whether selfinitialized or ...
+
+    video.width = presentation.width;
+    video.height = presentation.height;
+
+    console.log("DASJ-JS: content type: " + presentation.mimeType
+            + '; codecs="' + presentation.codecs + '"');
+    addSourceBuffer(mediaSource, buffer.id, presentation.mimeType
+            + '; codecs="' + presentation.codecs + '"');
+
+    var baseURL = presentation.baseURL != undefined ? presentation.baseURL : '';
+    if (presentation.hasInitialSegment == false) {
+        var nextChunkSrc = this.adaptation._getNextChunkP(presentation, presentation.curSegment).src;
+        var nextChunkRange = this.adaptation._getNextChunk(presentation.curSegment).range;
+        this._fetch_segment(presentation, baseURL + nextChunkSrc, video, nextChunkRange, buffer);
+
+        if (presentation.curSegment > 0) {
+            presentation.curSegment = 1;
+        }
+        
+        presentation.curSegment++;
+
+    } else {
+        var nextChunk = this.adaptation.getInitialChunk(presentation);
+        this._fetch_segment(presentation, baseURL + nextChunk.src, video, nextChunk.range, buffer);
+        
+    }
+
+};
+
+DASHttp.prototype._dashFetchSegmentBuffer = function(presentation, video, buffer) {
+    if (presentation.curSegment >= presentation.segmentList.segments - 1) {
+        return;
+    }
+    var baseURL = presentation.baseURL != undefined ? presentation.baseURL : '';
+    var nextChunkSrc = this.adaptation._getNextChunkP(presentation, presentation.curSegment).src;
+    var nextChunkRange = this.adaptation._getNextChunk(presentation.curSegment).range;
+    this._fetch_segment_for_buffer(presentation, baseURL + nextChunkSrc, video, nextChunkRange, buffer);
+    presentation.curSegment++;
+
+};
+
+DASHttp.prototype._dashFetchSegmentAsynchron = function(buffer, callback) {
+    this._dashFetchSegmentBuffer(this.adaptation.currentRepresentation, this.adaptation.mediaElement, buffer);
+};

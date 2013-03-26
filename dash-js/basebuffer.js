@@ -1,7 +1,7 @@
 /*
  * basebuffer.js
  *****************************************************************************
- * Copyright (C) 2012 - 2013 Alpen-Adria-Universität Klagenfurt
+ * Copyright (C) 2012 - 2013 Alpen-Adria-Universitï¿½t Klagenfurt
  *
  * Created on: Feb 13, 2012
  * Authors: Benjamin Rainer <benjamin.rainer@itec.aau.at>
@@ -21,131 +21,125 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
- 
 
 // base class for buffer implementations
+function BaseBuffer() {
 
-function baseBuffer()
-{
+    this.fillState = new Object(); // will hold the fill state of the buffer,
+                                    // in time and in bytes
+    this.fillState.bytes = 0;
+    this.fillState.seconds = 0; // only seconds are used in the time domain,
+                                // feel free to use fractions
+    this.bufferSize = new Object(); // holds the size of the buffer
+    this.bufferSize.maxseconds = 0;
+    this.bufferSize.maxbytes = 0;
+    this.criticalState = new Object(); // used for signaling that we may run
+                                        // out of buffered data
+    this.criticalState.seconds = 0;
+    this.criticalState.bytes = 0;
 
-	this.fillState = new Object();	// will hold the fill state of the buffer, in time and in bytes
-	this.fillState.bytes = 0;
-	this.fillState.seconds = 0;		// only seconds are used in the time domain, feel free to use fractions
-	this.bufferSize = new Object(); // holds the size of the buffer
-	this.bufferSize.maxseconds = 0;
-	this.bufferSize.maxbytes = 0;
-	this.criticalState = new Object(); // used for signaling that we may run out of buffered data
-	this.criticalState.seconds = 0;
-	this.criticalState.bytes = 0;
-	
-	
-	this.eventHandlers = new Object();
-	this.eventHandlers.handler = new Array();
-	this.eventHandlers.cntHandlers = 0;
-	
-	
-	// buffer array, ring buffer ...
-	this.buffer = new Object;
-	this.buffer.array = new Array();
-	this.buffer.first = 0;
-	this.buffer.last = 0;
-	this.buffer.size = 0;
-	this.streamEnded = false;
-	this.isOverlayBuffer = false;		// Overlay buffers are only used to mimic the behaviour of an HTML element or a video player where we have no access to the buffer of the unit
+    this.eventHandlers = new Object();
+    this.eventHandlers.handler = new Array();
+    this.eventHandlers.cntHandlers = 0;
+
+    // buffer array, ring buffer ...
+    this.buffer = new Object;
+    this.buffer.array = new Array();
+    this.buffer.first = 0;
+    this.buffer.last = 0;
+    this.buffer.size = 0;
+    this.streamEnded = false;
+    this.isOverlayBuffer = false; // Overlay buffers are only used to mimic
+                                    // the behaviour of an HTML element or a
+                                    // video player where we have no access to
+                                    // the buffer of the unit
 }
 
-baseBuffer.prototype.initBufferArray = function(dimension,seglength)
-{
-	this.buffer.size = this.bufferSize.maxseconds / seglength;
-	console.log("Buffer size: " + this.buffer.size);
-	
-	for(i = 0; i < (this.bufferSize.maxseconds / seglength); i++)
-	{
-		this.buffer.array[i] = new Object();
-	}
-	
-}
+BaseBuffer.prototype.constructor = BaseBuffer;
 
-baseBuffer.prototype.registerEventHandler = function(event, handler)
-{
-	this.eventHandlers.handler[this.eventHandlers.cntHandlers] = new Object();
-	this.eventHandlers.handler[this.eventHandlers.cntHandlers].fn = handler;
-	this.eventHandlers.handler[this.eventHandlers.cntHandlers++].event = event;
-}
+BaseBuffer.prototype.initBufferArray = function(dimension, seglength) {
+    this.buffer.size = this.bufferSize.maxseconds / seglength;
+    console.log("Buffer size: " + this.buffer.size);
 
-baseBuffer.prototype.callEvent = function(event,data)
-{
-	for(i=0;i<this.eventHandlers.handler.length;i++)
-	{
-		if(this.eventHandlers.handler[i].event == event) this.eventHandlers.handler[i].fn(data);
-	}
-}
+    for (var i = 0; i < (this.bufferSize.maxseconds / seglength); i++) {
+        this.buffer.array[i] = new Object();
+    }
 
+};
 
-baseBuffer.prototype.drain = function(dimension,amount)
-{
-	//console.log("Draining buffer: " + object);
-	if(dimension == "bytes")
-	{
-		if(this.fillState.bytes == 0 && this.streamEnded) return -1;
-		if(this.fillState.bytes <= this.criticalState.bytes && !this.streamEnded)
-        {
+BaseBuffer.prototype.registerEventHandler = function(event, handler) {
+    console.log("Registered buffer event: " + event);
+    this.eventHandlers.handler[this.eventHandlers.cntHandlers] = new Object();
+    this.eventHandlers.handler[this.eventHandlers.cntHandlers].fn = handler;
+    this.eventHandlers.handler[this.eventHandlers.cntHandlers++].event = event;
+};
+
+BaseBuffer.prototype.callEvent = function(event, data) {
+    console.log("Calling event: " + event);
+    for (var i = 0; i < this.eventHandlers.handler.length; i++) {
+        if (this.eventHandlers.handler[i].event == event)
+            this.eventHandlers.handler[i].fn(data);
+    }
+};
+
+BaseBuffer.prototype.drain = function(dimension, amount) {
+    console.log("Draining buffer: " + this);
+    if (dimension == "bytes") {
+        console.log("[BaseBuffer] - returning bytes");
+        if (this.fillState.bytes == 0 && this.streamEnded) {
+            return -1;
+        }
+        
+        if (this.fillState.bytes <= this.criticalState.bytes && !this.streamEnded) {
             this.callEvent("minimumLevel");
             return 0;
-        }else{
+        } else {
             this.fillState.bytes -= amount;
             return this.get();
-            
+
         }
     }
-	
-	if(dimension == "seconds")
-	{
-		
-		if(this.fillState.seconds == 0 && this.streamEnded) return -1;
-        if(this.fillState.seconds <= this.criticalState.seconds && !this.streamEnded) 
-        {
+
+    if (dimension == "seconds") {
+
+        if (this.fillState.seconds == 0 && this.streamEnded) {
+            console.log("[BaseBuffer] - seconds+fillstate==0+streamEnded");
+            return -1;
+        } else if (this.fillState.seconds <= this.criticalState.seconds && !this.streamEnded) {
+            console.log("[BaseBuffer] - seconds+fillstate<=criticalSTate+!streamEnded");
             this.callEvent("minimumLevel");
             return 0;
-        }else{
-           
+        } else {
             this.fillState.seconds -= amount;
-            return this.get();
-            
+            var ret = this.get();
+            console.log("[BaseBuffer] - seconds+else, returning: " + ret);
+            return ret;
         }
-    }	    
+    }
+    console.log("return 0");
     return 0;
-}
+};
 
-baseBuffer.prototype.state = function(dimension) {	//return buffer fill level in percent
+BaseBuffer.prototype.state = function(dimension) { // return buffer fill level in percent
+    if (dimension == "bytes") {
+        return (this.fillState.bytes / this.bufferSize.maxbytes) * 100;
+    }
 
-	if(dimension == "bytes")
-	{
-	
-		return (this.fillState.bytes / this.bufferSize.maxbytes)*100;
-		
-	}
-	
-	if(dimension == "seconds")
-	{
-		
-		return (this.fillState.seconds / this.bufferSize.maxseconds)*100;
-	}
-	
-	return -1;
-	
-}
+    if (dimension == "seconds") {
+        return (this.fillState.seconds / this.bufferSize.maxseconds) * 100;
+    }
 
-baseBuffer.prototype.add = function(data)
-{
-	console.log("Adding chunk: " + this.buffer.last % this.buffer.size);
-	console.log("Fill state: " + this.fillState.seconds);
-	this.buffer.array[this.buffer.last++ % this.buffer.size] = data
-}
+    return -1;
+};
 
-baseBuffer.prototype.get = function()
-{
-	console.log("Getting chunk: " + this.buffer.first % this.buffer.size);
-	console.log("Fill state: " + this.fillState.seconds);
-	return this.buffer.array[this.buffer.first++ % this.buffer.size];
-}
+BaseBuffer.prototype.add = function(data) {
+    console.log("Adding chunk: " + this.buffer.last % this.buffer.size);
+    console.log("Fill state: " + this.fillState.seconds);
+    this.buffer.array[this.buffer.last++ % this.buffer.size] = data;
+};
+
+BaseBuffer.prototype.get = function() {
+    console.log("Getting chunk: " + this.buffer.first % this.buffer.size);
+    console.log("Fill state: " + this.fillState.seconds);
+    return this.buffer.array[this.buffer.first++ % this.buffer.size];
+};

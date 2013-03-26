@@ -1,7 +1,7 @@
 /*
  * bandwidth.js
  *****************************************************************************
- * Copyright (C) 2012 - 2013 Alpen-Adria-Universität Klagenfurt
+ * Copyright (C) 2012 - 2013 Alpen-Adria-Universitï¿½t Klagenfurt
  *
  * Created on: Feb 13, 2012
  * Authors: Benjamin Rainer <benjamin.rainer@itec.aau.at>
@@ -22,9 +22,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
  
-var maxBandwidth = 8 * 1024 * 1024;        // 4 Mbps
+Bandwidth.MAX_BANDWIDTH = 8*1024*1024; // 4 Mbps
 
-function bandwidth(initial_bps, weight_f, weight_s)
+Bandwidth.prototype.constructor = Bandwidth;
+function Bandwidth(initial_bps, weight_f, weight_s)
 {
 	this.identifier = 0;
 	this.bps = initial_bps;
@@ -34,12 +35,12 @@ function bandwidth(initial_bps, weight_f, weight_s)
 	this.observer_num = 0;
 }
 
-bandwidth.prototype.addObserver = function (_obj){
-	this.observers[this.observer_num++] = _obj;
-	
-}
 
-bandwidth.prototype.notify = function(){
+Bandwidth.prototype.addObserver = function (_obj){
+	this.observers[this.observer_num++] = _obj;
+};
+
+Bandwidth.prototype.notify = function(){
 	if(this.observers.length > 0){
 		
 		for(var i=0;i< this.observers.length; i++)
@@ -47,34 +48,29 @@ bandwidth.prototype.notify = function(){
 			this.observers[i].update(this.bps, this.identifier);
 		}
 	}
-}
+};
 
-bandwidth.prototype.calcWeightedBandwidth = function(_bps) {
-	
+Bandwidth.prototype.calcWeightedBandwidth = function(_bps) {
 	// check whether the bitrate has changed dramatically otherwise we won't search a new representation
 	console.log("Bitrate measured with last segment: " + _bps + " bps");
 	this.bps = parseInt(((this.weight_f * this.bps) + (this.weight_s * _bps)) / 2) * 0.9;  // the weights are used to mimic optmistic or pessimistic behavior
-	// check if we exceed the set bandwidth ..
-    if( this.bps > maxBandwidth && maxBandwidth > 0) this.bps = maxBandwidth;
-    
-    console.log("Cummulative bitrate: " + this.bps + " bps");
 	
+	// check if we exceed the set bandwidth ..
+    if( this.bps > Bandwidth.MAX_BANDWIDTH && Bandwidth.MAX_BANDWIDTH > 0) {
+        this.bps = Bandwidth.MAX_BANDWIDTH;
+    }
     
-    
+    console.log("Cumulative bitrate: " + this.bps + " bps");
 	// inform the observers
 	this.notify();
 	return this.bps;
-}
+};
 
-bandwidth.prototype.adjustWeights = function(weight_f, weight_s) {
-
+Bandwidth.prototype.adjustWeights = function(weight_f, weight_s) {
 	this.weight_f = weight_f;
 	this.weight_s = weight_s;
-	
-}
+};
 
-bandwidth.prototype.getBps = function () {
-
+Bandwidth.prototype.getBps = function () {
 	return this.bps;
-
-}
+};

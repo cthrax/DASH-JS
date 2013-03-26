@@ -3,12 +3,12 @@
 		<title>ITEC @ AAU | DASH-JS Showcase</title>
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
 
-	<script src="dash-js/dashPlayerVars.js"></script>
 	<script src="dash-js/mediaSourceAPIAdaptation.js"></script>
 	<script src="dash-js/fplot.js"></script>
 	<script src="dash-js/mpdParser.js"></script>
 	<script src="dash-js/bandwidth.js"></script>
 	<script src="dash-js/adaptationlogic.js"></script>
+	<script src="dash-js/ratebased_adaptation.js"></script>
 	<script src="dash-js/rate_measurement.js"></script>
 	<script src="dash-js/DASHttp.js"></script>
 	<script src="dash-js/basebuffer.js"></script>
@@ -21,30 +21,33 @@
 	<body>
 	<h1> DASH-JS Showcase</h1>
 	This showcase will only work using Google Chrome with MediaSource API enabled (use chrome://flags to enable the API).
-<p>
-    <br>
+    <p>
+        <br />
         Bandwidth in kbps (0=infinite[estimated]): <input type="text" id="bps" value="0"> <input type="button" value="Set" onClick="javascript:setBandwidth()"></p>
 	<p>
 	<video controls autoplay ></video>
 	<canvas id="graph" width="600" height="500"></canvas>
     </p>
-		<script>
- 		document.getElementById("bps").value = maxBandwidth/1024;
-		function setBandwidth()
-            {
-
-                mybps = parseInt(document.getElementById("bps").value)*1024;
-                maxBandwidth = mybps;
+		<script type="text/javascript">
+ 		    var bps = document.getElementById("bps");
+ 		    bps.value = Bandwidth.MAX_BANDWIDTH/1024;
+		    function setBandwidth() {
+                mybps = parseInt(bps.value)*1024;
+                Bandwidth.MAX_BANDWIDTH = mybps;
 
             }
-
-
-
-		video = document.querySelector('video');
-		var dashPlayer = new DASHPlayer(video,"h264_gop15_dash.mpd");
-
-
-
+            
+            function getGraph() {
+                return document.getElementById('graph');
+            }
+            
+		    video = document.querySelector('video');
+		    var mpd = window.location.search.replace("?mpd=", "");
+		    if (mpd != "") {
+		      var dashPlayer = new DASHPlayer(video, mpd, getGraph);
+		    } else {
+		      alert("Must specify query param 'mpd=<relative mpd path>' 'mpd=h264_gop15_main_dash_dash.mpd' or 'mpd=bunny_ibmff_240.mpd'");
+		    }
 		</script>
 	</body>
 </html>

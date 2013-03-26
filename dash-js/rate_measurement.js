@@ -1,7 +1,7 @@
 /*
  * rate_measurement.js
  *****************************************************************************
- * Copyright (C) 2012 - 2013 Alpen-Adria-Universität Klagenfurt
+ * Copyright (C) 2012 - 2013 Alpen-Adria-Universitï¿½t Klagenfurt
  *
  * Created on: Feb 13, 2012
  * Authors: Benjamin Rainer <benjamin.rainer@itec.aau.at>
@@ -27,33 +27,30 @@ measurement.startTimeMeasure = 0;
 measurement.endTimeMeasure = 0;
 var __id = new Array();
 
-function beginBitrateMeasurement(){
-	
-	measurement.startTimeMeasure =new Date().getTime();	
-	
+function beginBitrateMeasurement() {
+    measurement.startTimeMeasure = new Date().getTime();
 }
 
-function endBitrateMeasurement(lengthInBytes){
-
-	measurement.endTimeMeasure =new Date().getTime();
-	
-	// return bps
-	return ((lengthInBytes*8)/(measurement.endTimeMeasure - measurement.startTimeMeasure))*1000;
+function endBitrateMeasurement(lengthInBytes) {
+    measurement.endTimeMeasure = new Date().getTime();
+    // return bps
+    return ((lengthInBytes * 8) / (measurement.endTimeMeasure - measurement.startTimeMeasure)) * 1000;
 }
 
-function beginBitrateMeasurementByID(id){
-
-	__id[id]=new Date().getTime();	
-
+function beginBitrateMeasurementByID(id) {
+    __id[id] = new Date().getTime();
 }
 
-function endBitrateMeasurementByID(id, lengthInBytes){
+function endBitrateMeasurementByID(id, lengthInBytes) {
+    var end = new Date().getTime();
 
-	
-	end = new Date().getTime();
-	
-	// return bps
-	//console.log("END id: " + id + " time: " +end);
-	//console.log("Start: " + __id[id]);
-	return ((lengthInBytes*8)/(end - __id[id]))*1000;
+    // return bps
+    // console.log("END id: " + id + " time: " +end);
+    // console.log("Start: " + __id[id]);
+    var calc =  ((lengthInBytes * 8) / (end - __id[id])) * 1000;
+    if (calc == Number.POSITIVE_INFINITY || calc == Number.NEGATIVE_INFINITY) {
+        return Bandwidth.MAX_BANDWIDTH;
+    } else {
+        return calc;
+    }
 }

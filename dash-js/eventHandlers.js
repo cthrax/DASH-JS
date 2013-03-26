@@ -1,7 +1,7 @@
 /*
  * eventHandlers.js
  *****************************************************************************
- * Copyright (C) 2012 - 2013 Alpen-Adria-Universität Klagenfurt
+ * Copyright (C) 2012 - 2013 Alpen-Adria-Universitï¿½t Klagenfurt
  *
  * Created on: Feb 13, 2012
  * Authors: Benjamin Rainer <benjamin.rainer@itec.aau.at>
@@ -21,27 +21,41 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
- 
- 
- function onOpenSource(e)
- {
-	_dashSourceOpen(overlayBuffer, adaptation.currentRepresentation, dashPlayer.videoTag, e.target);
-	overlayBuffer.bufferStateListener(overlayBuffer);
- }
- 
- function onProgress(e)
- {
 
-	if( adaptation.mediaElement.webkitSourceState != HTMLMediaElement.SOURCE_ENDED )
-	{
-		overlayBuffer.bufferStateListener(overlayBuffer);
-	}
-	
- }
- 
- function onSourceEnded(e)
- {
-	console.log('DASH JS Client got callback - video ended');
-	myFplot.plot();
- }
- 
+
+EventHandlers.prototype.constructor = EventHandlers;
+function EventHandlers(dashPlayer) {
+    this.dashPlayer = dashPlayer;
+}
+
+EventHandlers.prototype.onOpenSource = function(e) {
+    this.dashPlayer.dashHttp._dashSourceOpen(this.dashPlayer.overlayBuffer, this.dashPlayer.adaptation.currentRepresentation, this.dashPlayer.videoTag, e.target);
+    this.dashPlayer.overlayBuffer.bufferStateListener();
+};
+
+EventHandlers.prototype.onProgress = function(e) {
+    // TODO: This webkit API doesn't exist, what replaces it?
+    if (this.dashPlayer.adaptation.mediaElement.webkitSourceState != HTMLMediaElement.SOURCE_ENDED) {
+        this.dashPlayer.overlayBuffer.bufferStateListener();
+    }
+};
+
+EventHandlers.prototype.onSourceEnded = function(e) {
+    console.log('DASH JS Client got callback - video ended');
+    this.dashPlayer.fplot.plot();
+};
+
+EventHandlers.prototype.getOpenHandler = function() {
+    var instance = this;
+    return function(e) { instance.onOpenSource(e); };
+};
+
+EventHandlers.prototype.getProgressHandler = function() {
+    var instance = this;
+    return function(e) { instance.onProgress(e); };
+};
+
+EventHandlers.prototype.getEndHandler = function() {
+    var instance = this;
+    return function(e) { instance.onSourceEnded(e); };
+};

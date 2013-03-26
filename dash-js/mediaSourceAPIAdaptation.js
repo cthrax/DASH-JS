@@ -1,7 +1,7 @@
 /*
  * mediaSourceAPIAdaptation.js
  *****************************************************************************
- * Copyright (C) 2012 - 2013 Alpen-Adria-Universität Klagenfurt
+ * Copyright (C) 2012 - 2013 Alpen-Adria-Universitï¿½t Klagenfurt
  *
  * Created on: Feb 13, 2012
  * Authors: Benjamin Rainer <benjamin.rainer@itec.aau.at>
@@ -22,62 +22,72 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
-function checkSourceError(videoTag)
-{
-	if(videoTag.error == null) return;
+function checkSourceError(videoTag) {
+    if (videoTag.error == null)
+        return;
 
-	if(videoTag.error.code == 4) {
+    if (videoTag.error.code == 4) {
 
-		console.log("Media SourceAPI error...");
-		throw "ERROR SOURCE NOT SUPPORTED É ";
+        console.log("Media SourceAPI error...");
+        throw "ERROR SOURCE NOT SUPPORTED ï¿½ ";
 
-	}else if(videoTag.error.code == 3) {
+    } else if (videoTag.error.code == 3) {
 
-		console.log("Decoding error");
-		throw "Decoding error";
+        console.log("Decoding error");
+        throw "Decoding error";
 
-	}else if(videoTag.error.code == 1) {
-		console.log("AbortedÉ");
-		throw "AbortedÉ";
-	}else if(videoTag.error.code == 2) {
-		console.log("Network errorÉ");
-		throw "AbortedÉ";
-	}
+    } else if (videoTag.error.code == 1) {
+        console.log("Abortedï¿½");
+        throw "Abortedï¿½";
+    } else if (videoTag.error.code == 2) {
+        console.log("Network errorï¿½");
+        throw "Abortedï¿½";
+    } else {
+        console.log("Unknown error.");
+        throw "Unknown.";
+    }
 }
 
+function overrideMediaSource() {
+    /* new MSE ... */
+    var URL = window.URL || window.webkitURL;
+    if (window.WebKitMediaSource != null) {
+        window.MediaSource = window.WebKitMediaSource;
+    }
+    
+    return URL;
+}
 
-function sourceBufferAppend(mediaSource, id, data)
-{
+function sourceBufferAppend(mediaSource, id, data, dashPlayer) {
     if (mediaSource.sourceBuffers[id] != undefined) {
+        console.log("[STATUS] MediaSource Before: ");
+        console.log("Readystate: " + mediaSource.readyState);
+        console.log(mediaSource);
         mediaSource.sourceBuffers[id].append(data);
+        console.log("[STATUS]MediaSource After: ");
+        console.log("Readystate: " + mediaSource.readyState);
+        console.log(mediaSource);
     } else {
         console.log("Attempting to append to non-existent buffer.");
     }
 }
 
+function addSourceBuffer(mediaSource, id, type) {
 
-function addSourceBuffer(mediaSource, id, type)
-{
-
-	mediaSource.addSourceBuffer(type);
+    mediaSource.addSourceBuffer(type);
 }
 
+function createMediaSource(representation, eventHandlers) {
+    // to obtain a new MediaSource we will have to create a new video element
+    // but without showing it
+    var _video = document.createElement("video");
+    _video.id = "TEST";
+    // now we can set the event handlers
+    _video.src = _video.webkitMediaSourceURL;
+    // add the standard handlers...
+    _video.addEventListener('progress', handlers.getProgressHandler());
+    _video.addEventListener('webkitsourceopen', handlers.getOpenHandlers(), false);
+    _video.addEventListener('webkitsourceended', handlers.getEndHandlers());
 
-
- 
- function createMediaSource(representation)
- {
-	// to obtain a new MediaSource we will have to create a new video element but without showing it
-	var _video = document.createElement("video");
-	_video.id = "TEST";
-	// now we can set the event handlers
-	_video.src = _video.webkitMediaSourceURL;
-	// add the standard handlers...
-	_video.addEventListener('progress', onProgress);
-			
-	_video.addEventListener('webkitsourceopen', onOpenSource, false);
-	
-	_video.addEventListener('webkitsourceended', onSourceEnded);
-	
-	return _video;
- }
+    return _video;
+}

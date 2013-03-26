@@ -1,7 +1,7 @@
 /*
  * mediaSourceBuffer.js
  *****************************************************************************
- * Copyright (C) 2012 - 2013 Alpen-Adria-Universität Klagenfurt
+ * Copyright (C) 2012 - 2013 Alpen-Adria-Universitï¿½t Klagenfurt
  *
  * Created on: Feb 13, 2012
  * Authors: Benjamin Rainer <benjamin.rainer@itec.aau.at>
@@ -23,149 +23,132 @@
  *****************************************************************************/
 var _mediaSourceBuffer;
 
-
-
-function mediaSourceBuffer(id)
-{
-	this._eventHandlers = new Object();
-	this._eventHandlers.cnt = 0;
-	this._eventHandlers.handlers = new Array();
-    	this.mediaElementBuffered = 0;
-   	this.lastTime = 0;
-    	this.fill = false;
-    	this.doRefill = false;
-	this.id = id;
+function MediaSourceBuffer(id, criticalLevel, buffersize, mediaAPI, dashPlayer) {
+    var instance = this;
+    this._eventHandlers = new Object();
+    this._eventHandlers.cnt = 0;
+    this._eventHandlers.handlers = new Array();
+    this.mediaElementBuffered = 0;
+    this.lastTime = 0;
+    this.fill = false;
+    this.doRefill = false;
+    this.id = id;
+    this.isOverlayBuffer = true;
+    this.isOverlayBuffer = true;
+    this.criticalState.seconds = criticalLevel;
+    this.bufferSize.maxseconds = buffersize;
+    this.mediaAPI = mediaAPI;
+    this.dashPlayer = dashPlayer;
+    this.lastTime = 0;
+    this.playbackTimePlot = dashPlayer.fplot;
+    this.registerEventHandler("minimumLevel", function () { instance.signalRefill(); });
+    
+    this.initBufferArray("seconds", 2);
 }
 
+MediaSourceBuffer.prototype = new BaseBuffer();
+MediaSourceBuffer.prototype.constructor = MediaSourceBuffer;
 
-function init_mediaSourceBuffer(bufferId, criticalLevel,buffersize, mediaAPI, videoElement, playbackTimePlot)
-{
-	mediaSourceBuffer.prototype = new baseBuffer();
-	
-	mediaSourceBuffer.prototype.addEventHandler = function (fn)
-	{
-		// handlers will get the fillstate ...
-		
-		this._eventHandlers.handlers[this._eventHandlers.cnt] = new Object();
-		this._eventHandlers.handlers[this._eventHandlers.cnt++].fn = fn;
-	}
-	
-	
-	mediaSourceBuffer.prototype.callEventHandlers = function ()
-	{
-		
-		for(i=0;i<this._eventHandlers.cnt; i++) 
-		{
-			this._eventHandlers.handlers[i].fn(this.getFillLevel(),this.fillState.seconds, this.bufferSize.maxseconds);
+MediaSourceBuffer.prototype.addEventHandler = function(fn) {
+    // handlers will get the fillstate ...
+
+    this._eventHandlers.handlers[this._eventHandlers.cnt] = new Object();
+    this._eventHandlers.handlers[this._eventHandlers.cnt++].fn = fn;
+};
+
+MediaSourceBuffer.prototype.callEventHandlers = function() {
+
+    for (var i = 0; i < this._eventHandlers.cnt; i++) {
+        this._eventHandlers.handlers[i].fn(this.getFillLevel(),
+                this.fillState.seconds, this.bufferSize.maxseconds);
+    }
+};
+
+MediaSourceBuffer.prototype.bufferStateListener = function() {
+    var instance = this;
+    this.mediaElementBuffered -= this.dashPlayer.videoTag.currentTime - this.lastTime;
+
+    if (this.mediaElementBuffered < 2) {
+
+        var rc = this.drain("seconds", 2);
+
+        if (rc == -1) {
+            console.log("[BufferStateListener] - rc-1");
+            // signal that we are done!
+            if (this.dashPlayer.videoTag.webkitSourceEndOfStream != undefined) {
+                this.dashPlayer.videoTag.webkitSourceEndOfStream(HTMLMediaElement.EOS_NO_ERROR);
+            } else {
+                this.dashPlayer.videoTag.ended = true;
+            }
+            return;
+        } else if (rc != 0) {
+            console.log("[BufferStateListener] - rc!=0: " + this.mediaElementBuffered);
+            this.dashPlayer.dashHttp._push_segment_to_media_source_api(this, rc); 
+
+            // the new MediaAPI allows to have more than one source buffer for the
+            // separate decoding chains (really nice) so we may support resolution
+            // switching in the future
+            this.mediaElementBuffered += 2;
+
+        } else {
+            console.log("[BufferStateListener] - Finished, no if.");
         }
-	}
-	
-	mediaSourceBuffer.prototype.bufferStateListener = function(object){
-		
-        object.mediaElementBuffered -= dashPlayer.videoTag.currentTime - object.lastTime;
         
-        
-        if(object.mediaElementBuffered < 2) {
-           
-            rc = object.drain("seconds",2);
-            
-            if (rc == -1)
-            {
-                // signal that we are done!
-                
-                dashPlayer.videoTag.webkitSourceEndOfStream(HTMLMediaElement.EOS_NO_ERROR);
-                return;
-            }
-            
-            if (rc != 0)
-            {
-              
-                _push_segment_to_media_source_api(_mediaSourceBuffer, rc);		// the new MediaAPI allows to have more than one source buffer for the separate decoding chains (really nice) so we may support resolution switching in the future
-                this.mediaElementBuffered += 2;
+    }
+    this.lastTime = this.dashPlayer.videoTag.currentTime;
 
-            }
-            
-            
-            
-            
-        } 
-        object.lastTime = dashPlayer.videoTag.currentTime;
-      
-        window.setTimeout(function () {_mediaSourceBuffer.bufferStateListener(_mediaSourceBuffer);},100);
-			
-	}
-    
-    // this is the callback method, called by the AJAX xmlhttp call
-   	mediaSourceBuffer.prototype.callback = function(){
-        
-        	window.setTimeout(function () {_mediaSourceBuffer.refill(_mediaSourceBuffer);},0,true);
-        
-        
-    	}
-    
-	mediaSourceBuffer.prototype.signalRefill = function()
-	{
-        
-		if(_mediaSourceBuffer.doRefill == false)
-        {   
-            console.log("signaling refill");
-            _mediaSourceBuffer.doRefill = true;
-            _mediaSourceBuffer.refill(_mediaSourceBuffer);  // asynch ... we will only dive once into this method
+    window.setTimeout(function() {
+        instance.bufferStateListener();
+    }, 100);
+
+};
+
+// this is the callback method, called by the AJAX xmlhttp call
+MediaSourceBuffer.prototype.callback = function() {
+    var instance = this;
+    window.setTimeout(function() {
+        instance.refill();
+    }, 0, true);
+
+};
+
+MediaSourceBuffer.prototype.signalRefill = function() {
+    if (this.doRefill == false) {
+        console.log("signaling refill");
+        this.doRefill = true;
+        // asynch ... we will only dive once into this method
+        this.refill();
+    } else {
+        console.log("no refill.");
+    }
+};
+
+MediaSourceBuffer.prototype.getFillLevel = function() {
+    return this.state("seconds");
+};
+
+MediaSourceBuffer.prototype.push = function(data, segmentDuration) {
+    this.fillState.seconds += segmentDuration;
+    this.add(data);
+
+};
+
+MediaSourceBuffer.prototype.refill = function() {
+
+    if (this.doRefill == true) {
+
+        if (this.fillState.seconds < this.bufferSize.maxseconds) {
+
+            console.log("Overlay buffer...");
+            console.log(this);
+            console.log("Fill state of overlay buffer: "
+                    + this.fillState.seconds);
+
+            this.dashPlayer.dashHttp._dashFetchSegmentAsynchron(this);
+
+            this.callEventHandlers();
+        } else {
+            this.doRefill = false;
         }
-	}
-	
-	mediaSourceBuffer.prototype.getFillLevel = function()
-	{
-		return this.state("seconds");
-	}
-	
-	mediaSourceBuffer.prototype.push = function(data,segmentDuration)
-	{
-		
-       		_mediaSourceBuffer.fillState.seconds += segmentDuration;
-        	_mediaSourceBuffer.add(data);
-	
-	}	
-	
-    
-	
-	mediaSourceBuffer.prototype.refill = function(object){
-		
-        if(object.doRefill == true){
-        
-            if(object.fillState.seconds < object.bufferSize.maxseconds){
-        
-                console.log("Overlay buffer...");
-                console.log(object);
-                console.log("Fill state of overlay buffer: " + object.fillState.seconds);
-		
-		
-                _dashFetchSegmentAsynchron(object);	
-		
-                object.callEventHandlers();
-            }else{
-                object.doRefill = false;
-            }
-		}
-	}
-	
-	
-	
-	
-	_mediaSourceBuffer = new mediaSourceBuffer(bufferId);
-	_mediaSourceBuffer.isOverlayBuffer = true;
-	_mediaSourceBuffer.criticalState.seconds = criticalLevel;
-	_mediaSourceBuffer.bufferSize.maxseconds = buffersize;
-   	_mediaSourceBuffer.initBufferArray("seconds",2);
-	_mediaSourceBuffer.mediaAPI = mediaAPI;
-	_mediaSourceBuffer.videoElement = videoElement;
-	_mediaSourceBuffer.lastTime = 0;
-	_mediaSourceBuffer.id = bufferId;
-   	_mediaSourceBuffer.playbackTimePlot = playbackTimePlot;
-	_mediaSourceBuffer.registerEventHandler("minimumLevel", _mediaSourceBuffer.signalRefill);
-
-		
-	
-	return _mediaSourceBuffer;
-}
-
+    }
+};

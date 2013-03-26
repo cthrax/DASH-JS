@@ -1,72 +1,87 @@
-var DASHJS_VERSION = "0.5a";
-var dashInstance;
+var DASHJS_VERSION = "0.6a";
 var playbackTimePlot;
 
-function updatePlaybackTime()
-{
-    playbackTimePlot.update(dashInstance.videoTag.currentTime, 2);
-    window.setTimeout(function () { updatePlaybackTime(); },100);
-    
+function DASHPlayer(videoTag, URLtoMPD, graphGetter) {
+    console.log("DASH-JS Version: " + DASHJS_VERSION);
+    this.videoTag = videoTag;
+    this.dashHttp = new DASHttp('no-cache');
+    var instance = this;
+    this.mpdLoader = new MPDLoader(function() { instance.loaded(); });
+    this.mpdLoader.loadMPD(URLtoMPD);
+    this.getBps = function() { return MPDLoader.bps; };
+    this.getGraph = graphGetter;
+    //myBuffer = init_timeBuffer(2,10,0,video);
+    //video.addEventListener('progress', function() {console.log("progress"); }, false);
 }
 
-function DASH_MPD_loaded()
-{
+DASHPlayer.prototype.updatePlaybackTime = function () {
+    var instance = this;
+    this.fplot.update(this.videoTag.currentTime, 2);
+    window.setTimeout(function() {
+        instance.updatePlaybackTime();
+    }, 100);
 
-	
+};
 
+DASHPlayer.prototype._setupBandwidthMonitoring = function(bps) {
+    // bps is global set by UI
+    this.bandwidth = new Bandwidth(bps, 1.1, 0.9);
+};
 
-	myBandwidth = new bandwidth(bps, 1.1, 0.9);
-   
-	adaptation = init_rateBasedAdaptation(dashInstance.mpdLoader.mpdparser.pmpd, dashInstance.videoTag, myBandwidth);
-	
-   	myFplot = new fPlot(document.getElementById("graph").getContext("2d"),parsePT(dashInstance.mpdLoader.mpdparser.pmpd.mediaPresentationDuration),document.getElementById("graph").width,document.getElementById("graph").height);
- 	myFplot.initNewFunction(0);
-	myFplot.initNewFunction(1);
-    	myFplot.initNewFunction(2); // the current playback time
-    	playbackTimePlot = myFplot;
-	myBandwidth.addObserver(myFplot);
-	
-	adaptation.addObserver(myFplot);
-	adaptation.switchRepresentation(); // try to get a better representation at the beginning
-	
-	overlayBuffer = init_mediaSourceBuffer("0", 20,30,0,dashInstance.videoTag);
-	dashInstance.overlayBuffer = overlayBuffer;
- 	
-    /* new MSE ... */
-    var URL = window.URL || window.wekitURL;
-    if(window.WebKitMediaSource != null){
-        window.MediaSource = window.WebKitMediaSource;
-    }
-    var MSE = new window.MediaSource();
-    dashInstance.MSE = MSE;
-    dashInstance.videoTag.src = URL.createObjectURL(MSE);
+DASHPlayer.prototype._setupHttp = function(adaptation, bandwidth) {
+    this.dashHttp = new DASHttp('no-cache', adaptation, bandwidth, this);
+};
 
-	
+DASHPlayer.prototype._setupAdaptation = function(pmpd, video, bandwidth) {
+    this.adaptation = new RateBasedAdaptation(pmpd, video, bandwidth);
+};
 
-    dashInstance.MSE.addEventListener('webkitsourceopen', onOpenSource, false);
-	dashInstance.MSE.addEventListener('sourceopen', onOpenSource, false);
+DASHPlayer.prototype._setupPlotting = function(mediaPresentationDuration) {
+    var graph = this.getGraph();
+    var duration = parsePT(mediaPresentationDuration);
+    this.fplot = new fPlot(graph.getContext("2d"), duration, graph.width, graph.height);
+    this.fplot.initNewFunction(0);
+    this.fplot.initNewFunction(1);
+    this.fplot.initNewFunction(2); // the current playback time
+};
 
-	dashInstance.MSE.addEventListener('webkitsourceended', onSourceEnded);
-	dashInstance.MSE.addEventListener('sourceended', onOpenSource, false);
-     
-	
-	overlayBuffer.addEventHandler(function(fillpercent, fillinsecs, max){ console.log("Event got called from overlay buffer, fillstate(%) = " + fillpercent + ", fillstate(s) = " + fillinsecs + ", max(s) = " + max); });
+DASHPlayer.prototype._setupBuffer = function() {
+    this.overlayBuffer = new MediaSourceBuffer("0", 2, 4, 0, this);
+};
+
+DASHPlayer.prototype._setupMediaSource = function() {
+    var URL = overrideMediaSource();
+    var handlers = new EventHandlers(this);
+    this.mse = new window.MediaSource();
+    this.videoTag.src = URL.createObjectURL(this.mse);
+
+    this.mse.addEventListener('webkitsourceopen', handlers.getOpenHandler(), false);
+    this.mse.addEventListener('sourceopen', handlers.getOpenHandler(), false);
     
+    this.mse.addEventListener('webkitsourceended', handlers.getEndHandler());
+    this.mse.addEventListener('sourceended', handlers.getEndHandler(), false);
+};
 
-   	window.setTimeout(function () { updatePlaybackTime(); },100);
-
+DASHPlayer.prototype.loaded = function () {
+    var instance = this;
+    this._setupBandwidthMonitoring(this.getBps());
+    this._setupAdaptation(this.mpdLoader.mpdparser.pmpd, this.videoTag, this.bandwidth);
+    this._setupHttp(this.adaptation, this.bandwidth);
+    this._setupPlotting(this.mpdLoader.mpdparser.pmpd.mediaPresentationDuration);
+    this._setupBuffer();
+    this._setupMediaSource();
     
-}
+    this.bandwidth.addObserver(this.fplot);
+    this.adaptation.addObserver(this.fplot);
+    this.adaptation.switchRepresentation(); // try to get a better representation at the beginning
+    
+    this.overlayBuffer.addEventHandler(function(fillpercent, fillinsecs, max) {
+        console.log("Event got called from overlay buffer, fillstate(%) = "
+                + fillpercent + ", fillstate(s) = " + fillinsecs
+                + ", max(s) = " + max);
+    });
 
-function DASHPlayer(videoTag, URLtoMPD)
-{
-	console.log("DASH-JS Version: " + DASHJS_VERSION);
-	dashInstance = this;
-	this.videoTag = videoTag;
-	initDASHttp('no-cache');
-	this.mpdLoader = new MPDLoader(DASH_MPD_loaded);
-	this.mpdLoader.loadMPD(URLtoMPD);
-	//myBuffer = init_timeBuffer(2,10,0,video);
-	//video.addEventListener('progress', , false);
-}
-
+    window.setTimeout(function() {
+        instance.updatePlaybackTime();
+    }, 100);
+};
