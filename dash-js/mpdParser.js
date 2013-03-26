@@ -28,6 +28,7 @@ MPD.rootElement.profile = "profiles";
 MPD.rootElement.type = "type";
 MPD.rootElement.mediaPresentationDuration = "mediaPresentationDuration";
 MPD.rootElement.minBufferTime = "minBufferTime";
+MPD.rootElement.availabilityStartTime = "availabilityStartTime";
 MPD.baseURL = new Object();
 MPD.baseURL.name = "BaseURL";
 MPD.period = new Object();
@@ -61,12 +62,21 @@ MPD.segmentURL.name = "SegmentURL";
 MPD.segmentURL.src = "media";
 MPD.segmentURL.range = "mediaRange";
 
+MPD.segmentTemplate = new Object();
+MPD.segmentTemplate.name = "SegmentTemplate";
+MPD.segmentTemplate.timescale = "timescale";
+MPD.segmentTemplate.initialization = "initialization";
+MPD.segmentTemplate.media = "media";
+MPD.segmentTemplate.duration = "duration";
+MPD.segmentTemplate.startNumber = "startNumber";
+
 function objectSize(obj) {
     var size = 0;
     var key = undefined;
     for (key in obj) {
-        if (obj.hasOwnProperty(key))
+        if (obj.hasOwnProperty(key)) {
             size++;
+        }
     }
     return size;
 }
@@ -206,8 +216,7 @@ MPDParser.prototype.parseSegmentList = function(representations, periods, groups
             var attribs = objectSize(MPD.segmentURL);
             this.pmpd.period[periods].group[groups].representation[representations].segmentList.segment[segments] = new Object();
             for (var i = 1; i < attribs; i++) {
-                attribValue = eval("MPD.segmentURL."
-                        + getKeyByIndex(MPD.segmentURL, i).toString());
+                attribValue = eval("MPD.segmentURL." + getKeyByIndex(MPD.segmentURL, i).toString());
                 if (node.hasAttribute(attribValue))
                     eval("this.pmpd.period[periods].group[groups].representation[representations].segmentList.segment[segments]."
                             + getKeyByIndex(MPD.segmentURL, i).toString()
@@ -224,22 +233,37 @@ MPDParser.prototype.parseSegmentList = function(representations, periods, groups
             this.parseInitialization(representations, groups, periods, segmentListChilds.item(s));
         }
     }
-
+    
     this.pmpd.period[periods].group[groups].representation[representations].segmentList.segments = segments;
-
 };
 
-MPDParser.prototype.parseRepresentation = function(representations, periods,
-        groups, node) {
+
+MPDParser.prototype.parseSegmentTemplate = function(representations, periods, groups, node) {
+    var attribs = objectSize(MPD.segmentTemplate);
+    
+    for (var i = 1; i < attribs; i++) {
+        var attribValue = eval("MPD.segmentTemplate." + getKeyByIndex(MPD.segmentTemplate, i).toString());
+        if (node.hasAttribute(attribValue)) {
+            eval("this.pmpd.period[periods].group[groups].representation[representations].segmentTemplate."
+                    + getKeyByIndex(MPD.segmentTemplate,i).toString()
+                    + "= node.attributes.getNamedItem(attribValue).value");
+        }
+    }
+    
+    //richiamo il metodo per parsificare l'availabilityStartTime
+    this.parseAvailabilityStartTime(this.pmpd.availabilityStartTime);
+};
+
+MPDParser.prototype.parseRepresentation = function(representations, periods, groups, node) {
     var attribs = objectSize(MPD.representation);
 
     for (var i = 1; i < attribs; i++) {
-        attribValue = eval("MPD.representation."
-                + getKeyByIndex(MPD.representation, i).toString());
-        if (node.hasAttribute(attribValue))
+        var attribValue = eval("MPD.representation." + getKeyByIndex(MPD.representation, i).toString());
+        if (node.hasAttribute(attribValue)) {
             eval("this.pmpd.period[periods].group[groups].representation[representations]."
                     + getKeyByIndex(MPD.representation, i).toString()
                     + "= node.attributes.getNamedItem(attribValue).value");
+        }
         // console.log("pmpd.period["+periods+"].group["+groups+"].representation["+representations+"]."
         // + getKeyByIndex(MPD.representation,i).toString() + "=" +
         // eval("this.pmpd.period[periods].groups[groups].representation[representations]."
@@ -250,15 +274,11 @@ MPDParser.prototype.parseRepresentation = function(representations, periods,
     this.pmpd.period[periods].group[groups].representation[representations].hasInitialSegment = false;
     this.pmpd.period[periods].group[groups].representation[representations].baseURL = false;
     for (var r = 0; r < representationChilds.length; r++) {
-
         if (representationChilds.item(r).nodeName != "#text") {
 
             var repNode = representationChilds.item(r);
-
             if (repNode.nodeName == MPD.segmentBase.name) {
-
-                // if there is a segmentBase we will have an initialization
-                // segment!
+                // if there is a segmentBase we will have an initialization segment!
                 this.pmpd.period[periods].group[groups].representation[representations].hasInitialSegment = true;
                 this.pmpd.period[periods].group[groups].representation[representations].initializationSegment = new Object();
                 this.parseInitializationFromRepresentation(representations, groups, periods, repNode);
@@ -272,6 +292,13 @@ MPDParser.prototype.parseRepresentation = function(representations, periods,
             if (repNode.nodeName == MPD.baseURL.name) {
                 this.pmpd.period[periods].group[groups].representation[representations].baseURL = node.textContent;
             }
+        
+            if (repNode.nodeName == MPD.segmentTemplate.name) {
+                this.pmpd.period[periods].group[groups].representation[representations].segmentTemplate = new Object();
+                // FIXME: needs to be checked
+                this.pmpd.period[periods].group[groups].representation[representations].hasInitialSegment = true;
+                this.parseSegmentTemplate(representations,groups, periods, repNode);
+            }
 
         }
     }
@@ -281,35 +308,38 @@ MPDParser.prototype.parseGroup = function(periods, groups, node) {
     var attribs = objectSize(MPD.group);
 
     for (var i = 1; i < attribs; i++) {
-        attribValue = eval("MPD.group."
-                + getKeyByIndex(MPD.group, i).toString());
-        if (node.hasAttribute(attribValue))
+        attribValue = eval("MPD.group." + getKeyByIndex(MPD.group, i).toString());
+        if (node.hasAttribute(attribValue)) {
             eval("this.pmpd.period[periods].group[groups]."
                     + getKeyByIndex(MPD.group, i).toString()
                     + "= node.attributes.getNamedItem(attribValue).value");
+        }
         // console.log("pmpd.period["+periods+"].group["+groups+"]." +
         // getKeyByIndex(MPD.group,i).toString() + "=" +
         // eval("this.pmpd.period[periods].groups[groups]" +
         // getKeyByIndex(MPD.group,i).toString()));
     }
+    
     // now the representations ...
     var groupchilds = node.childNodes;
     var representations = 0;
     this.pmpd.period[periods].group[groups].representation = new Array();
 
     for (var gr = 0; gr < groupchilds.length; gr++) {
-
         if (groupchilds.item(gr).nodeName != "#text") {
-
             var groupNode = groupchilds.item(gr);
-
             if (groupNode.nodeName == MPD.representation.name) {
                 this.pmpd.period[periods].group[groups].representation[representations] = new Object();
                 this.parseRepresentation(representations, groups, periods, groupNode);
                 representations++;
             }
-
+            
+            if (groupNode.nodeName == MPD.segmentTemplate.name) {
+                this.pmpd.period[periods].group[groups].segmentTemplate = new Object();
+                this.parseSegmentTemplate(representations, groups, periods, groupNode);
+            }
         }
+        
     }
 
 };
@@ -317,12 +347,12 @@ MPDParser.prototype.parseGroup = function(periods, groups, node) {
 MPDParser.prototype.parsePeriod = function(periods, node) {
     var attribs = objectSize(MPD.period);
     for (var i = 1; i < attribs; i++) {
-        attribValue = eval("MPD.period."
-                + getKeyByIndex(MPD.period, i).toString());
-        if (node.hasAttribute(attribValue))
+        attribValue = eval("MPD.period." + getKeyByIndex(MPD.period, i).toString());
+        if (node.hasAttribute(attribValue)) {
             eval("this.pmpd.period[periods]."
                     + getKeyByIndex(MPD.period, i).toString()
                     + "= node.attributes.getNamedItem(attribValue).value");
+        }
         // console.log("pmpd.period["+periods+"]" +
         // getKeyByIndex(MPD.period,i).toString() + "=" +
         // eval("this.pmpd.period[periods]" +
@@ -337,13 +367,11 @@ MPDParser.prototype.parsePeriod = function(periods, node) {
 
     for (var j = 0; j < periodchilds.length; j++) {
         if (periodchilds.item(j).nodeName != "#text") {
+            
             var periodNode = periodchilds.item(j);
-
             if (periodNode.nodeName == MPD.group.name) {
                 this.pmpd.period[periods].group[groups] = new Object();
-
                 this.parseGroup(periods, groups, periodNode);
-
                 groups++;
             }
         }
@@ -356,19 +384,18 @@ MPDParser.prototype.parse = function() {
         // get all attributes within the root element
 
         var attribs = objectSize(MPD.rootElement);
-
         for (var i = 1; i < attribs; i++) {
-            attribValue = eval("MPD.rootElement."
-                    + getKeyByIndex(MPD.rootElement, i).toString());
-            if (this.mpd.documentElement.hasAttribute(attribValue))
+            attribValue = eval("MPD.rootElement." + getKeyByIndex(MPD.rootElement, i).toString());
+            if (this.mpd.documentElement.hasAttribute(attribValue)) {
                 eval("this.pmpd."
                         + getKeyByIndex(MPD.rootElement, i).toString()
                         + "= this.mpd.documentElement.attributes.getNamedItem(attribValue).value");
+            }
+            
             console.log("pmpd."
                     + getKeyByIndex(MPD.rootElement, i).toString()
                     + "="
-                    + eval("this.pmpd."
-                            + getKeyByIndex(MPD.rootElement, i).toString()));
+                    + eval("this.pmpd." + getKeyByIndex(MPD.rootElement, i).toString()));
 
         }
 
@@ -402,6 +429,16 @@ MPDParser.prototype.parse = function() {
 
 };
 
+MPDParser.prototype.parseAvailabilityStartTime = function(str_startTime) {
+    var startTime = new Date(str_startTime).getTime();
+    var nowTime = new Date().getTime();
+    if (nowTime <= startTime) {
+        return -1;
+    } else {
+        return Math.floor((nowTime - startTime)/1000);
+    }
+};
+
 MPDLoader.bps = 1;
 
 function MPDLoader(callback) {
@@ -409,8 +446,10 @@ function MPDLoader(callback) {
 }
 
 MPDLoader.prototype._loadMPD = function() {
-    if (this.xmlHttp.readyState != 4)
+    if (this.xmlHttp.readyState != 4) {
         return;
+    }
+    
     MPDLoader.bps = endBitrateMeasurement(this.xmlHttp.responseText.length);
     console.log("Bitrate:" + bps + " bps");
     this.mpdparser = new MPDParser(this.xmlHttp.responseText);

@@ -85,3 +85,15 @@ DASHPlayer.prototype.loaded = function () {
         instance.updatePlaybackTime();
     }, 100);
 };
+
+//TODO: Move somewhere more appropriate
+function checkDate(str_startTime) {
+    var startTime = new date(str_startTime).getTime();
+    var nowTime = new Date().getTime();
+    
+    if (nowTime <= startTime) {
+        return -1;
+    } else {
+        return Math.floor((nowTime-startTime)/1000);
+    }
+}

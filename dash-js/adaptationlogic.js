@@ -75,13 +75,32 @@ AdaptationLogic.prototype.notify = function() {
 };
 
 AdaptationLogic.prototype._getNextChunk = function(count) {
-    return this.currentRepresentation.segmentList.segment[count];
+    var segmentURL = {};
+    
+    if (this.currentRepresentation.segmentList) {
+        segmentUrl = this.currentRepresentation.segmentList.segment[count];
+    } else if (this.currentRepresentation.segmentTemplate) {
+        segmentURL.src = this.currentRepresentation.segmentTemplate.media.replace("$Number%03$", count);
+    }
+    return segmentURL;
 };
 
 AdaptationLogic.prototype.getInitialChunk = function(presentation) {
-    return presentation.initializationSegment;
+    var segmentURL = {};
+    if (presentation.segmentTemplate) {
+        segementURL.src = presentation.segmentTemplate.initialization;
+    } else {
+        segmentURL = presentation.initializationSegment;
+    }
+    return segmentURL;
 };
 
 AdaptationLogic.prototype._getNextChunkP = function(presentation, count) {
+    var segmentURL = {};
+    if (presentation.segmentList) {
+        segmentURL = presentation.segmentList.segment[count];
+    } else if (presentation.segmentTemplate) {
+        segmentURL.src = presentation.segmentTemplate.media.replace("$Number%03$", count);
+    }
     return presentation.segmentList.segment[count];
 };

@@ -62,11 +62,13 @@ DASHttp.prototype._fetch_segment = function(presentation, url, video, range, buf
 
         instance._push_segment_to_media_source_api(buffer, data);
 
-        if (presentation.curSegment >= presentation.segmentList.segments - 1
-                && video.webkitSourceEndOfStream != undefined) {
-            video.webkitSourceEndOfStream(HTMLMediaElement.EOS_NO_ERROR);
-        } else if (presentation.curSegment >= presentation.segmentList.segments - 1){
-            video.ended = true;
+        // FIXME: in the live case we need a heuristic because the last segment is not known
+        if (presentation.segmentList) {
+            if (presentation.curSegment >= presentation.segmentList.segments - 1 && video.webkitSourceEndOfStream != undefined) {
+                video.webkitSourceEndOfStream(HTMLMediaElement.EOS_NO_ERROR);
+            } else if (presentation.curSegment >= presentation.segmentList.segments - 1){
+                video.ended = true;
+            }
         }
 
     };
@@ -92,24 +94,25 @@ DASHttp.prototype._fetch_segment_for_buffer = function(presentation, url, video,
     xhr.buffer = buffer;
     // _tmpvideo = video;
     xhr.onload = function(e) {
-
+        if (xhr.status == 404) {
+            // TODO-LIVE seqNotAvailable = true;
+            // TODO-LIVE requestDate = new Date();
+        }
         var data = new Uint8Array(this.response);
         var mybps = endBitrateMeasurementByID(this.timeID, data.length);
         instance.myBandwidth.calcWeightedBandwidth(parseInt(mybps));
 
-        instance.adaptation.switchRepresentation(); // <--- mod this, if you wanna
-                                            // change the adaptation behavior
-                                            // ... (e. g., include buffer state,
-                                            // ...)
+        instance.adaptation.switchRepresentation(); // <--- mod this, if you wanna change the adaptation behavior... (e. g., include buffer state, ...)
 
         // push the data into our buffer
         buffer.push(data, 2);
 
-        if (presentation.curSegment >= presentation.segmentList.segments - 1)
+        // FIXME: in the live case we need a heuristic because the last segment is not known
+        if (presentation.segmentList && presentation.curSegment >= presentation.segmentList.segments - 1) {
             buffer.streamEnded = true;
+        }
 
         buffer.callback();
-
     };
 
     beginBitrateMeasurementByID(this._timeID);
@@ -124,10 +127,8 @@ DASHttp.prototype._dashSourceOpen = function(buffer, presentation, video, mediaS
     video.width = presentation.width;
     video.height = presentation.height;
 
-    console.log("DASJ-JS: content type: " + presentation.mimeType
-            + '; codecs="' + presentation.codecs + '"');
-    addSourceBuffer(mediaSource, buffer.id, presentation.mimeType
-            + '; codecs="' + presentation.codecs + '"');
+    console.log("DASJ-JS: content type: " + presentation.mimeType + '; codecs="' + presentation.codecs + '"');
+    addSourceBuffer(mediaSource, buffer.id, presentation.mimeType + '; codecs="' + presentation.codecs + '"');
 
     var baseURL = presentation.baseURL != undefined ? presentation.baseURL : '';
     if (presentation.hasInitialSegment == false) {
@@ -135,7 +136,8 @@ DASHttp.prototype._dashSourceOpen = function(buffer, presentation, video, mediaS
         var nextChunkRange = this.adaptation._getNextChunk(presentation.curSegment).range;
         this._fetch_segment(presentation, baseURL + nextChunkSrc, video, nextChunkRange, buffer);
 
-        if (presentation.curSegment > 0) {
+        // FIXME: in the live case use heuristic
+        if (presentation.segmentList && presentation.curSegment > 0) {
             presentation.curSegment = 1;
         }
         

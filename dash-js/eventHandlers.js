@@ -30,7 +30,10 @@ function EventHandlers(dashPlayer) {
 
 EventHandlers.prototype.onOpenSource = function(e) {
     this.dashPlayer.dashHttp._dashSourceOpen(this.dashPlayer.overlayBuffer, this.dashPlayer.adaptation.currentRepresentation, this.dashPlayer.videoTag, e.target);
-    this.dashPlayer.overlayBuffer.bufferStateListener();
+    var instance = this;
+    // this.dashPlayer.overlayBuffer.bufferStateListener();
+    //FIXME: Should this time be configured based on MPD?
+    window.setTimeout(function() { instance.bufferStateListener();}, 2000);
 };
 
 EventHandlers.prototype.onProgress = function(e) {
