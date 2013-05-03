@@ -22,35 +22,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston MA 02110-1301, USA.
  *****************************************************************************/
 
-measurement = new Object();
-measurement.startTimeMeasure = 0;
-measurement.endTimeMeasure = 0;
-var __id = new Array();
-
-function beginBitrateMeasurement() {
-    measurement.startTimeMeasure = new Date().getTime();
+RateMeasurement.prototype.constructor = RateMeasurement;
+function RateMeasurement() {
+    this.measurement = new Object();
+    this.measurement.startTimeMeasure = 0;
+    this.measurement.endTimeMeasure = 0;
+    this.id = new Array();
 }
 
-function endBitrateMeasurement(lengthInBytes) {
-    measurement.endTimeMeasure = new Date().getTime();
+RateMeasurement.prototype.beginBitrateMeasurement = function() {
+    this.measurement.startTimeMeasure = new Date().getTime();
+};
+
+RateMeasurement.prototype.endBitrateMeasurement = function(lengthInBytes) {
+    this.measurement.endTimeMeasure = new Date().getTime();
     // return bps
-    return ((lengthInBytes * 8) / (measurement.endTimeMeasure - measurement.startTimeMeasure)) * 1000;
-}
+    return ((lengthInBytes * 8) / (this.measurement.endTimeMeasure - this.measurement.startTimeMeasure)) * 1000;
+};
 
-function beginBitrateMeasurementByID(id) {
-    __id[id] = new Date().getTime();
-}
+RateMeasurement.prototype.beginBitrateMeasurementByID = function (id) {
+    this.id[id] = new Date().getTime();
+};
 
-function endBitrateMeasurementByID(id, lengthInBytes) {
+RateMeasurement.prototype.endBitrateMeasurementByID = function (id, lengthInBytes) {
     var end = new Date().getTime();
 
     // return bps
     // console.log("END id: " + id + " time: " +end);
     // console.log("Start: " + __id[id]);
-    var calc =  ((lengthInBytes * 8) / (end - __id[id])) * 1000;
+    var calc =  ((lengthInBytes * 8) / (end - this.id[id])) * 1000;
     if (calc == Number.POSITIVE_INFINITY || calc == Number.NEGATIVE_INFINITY) {
         return Bandwidth.MAX_BANDWIDTH;
     } else {
         return calc;
     }
-}
+};

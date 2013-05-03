@@ -31,21 +31,24 @@ function EventHandlers(dashPlayer) {
 EventHandlers.prototype.onOpenSource = function(e) {
     this.dashPlayer.dashHttp._dashSourceOpen(this.dashPlayer.overlayBuffer, this.dashPlayer.adaptation.currentRepresentation, this.dashPlayer.videoTag, e.target);
     var instance = this;
-    // this.dashPlayer.overlayBuffer.bufferStateListener();
+    this.dashPlayer.overlayBuffer.bufferStateListener();
     //FIXME: Should this time be configured based on MPD?
-    window.setTimeout(function() { instance.bufferStateListener();}, 2000);
+    window.setTimeout(function() { instance.dashPlayer.overlayBuffer.bufferStateListener();}, 1000);
 };
 
 EventHandlers.prototype.onProgress = function(e) {
     // TODO: This webkit API doesn't exist, what replaces it?
-    if (this.dashPlayer.adaptation.mediaElement.webkitSourceState != HTMLMediaElement.SOURCE_ENDED) {
+    if (!this.dashPlayer.adaptation.mediaElement.error) {
+        console.log("[UPDATE] Progress.");
         this.dashPlayer.overlayBuffer.bufferStateListener();
     }
 };
 
 EventHandlers.prototype.onSourceEnded = function(e) {
     console.log('DASH JS Client got callback - video ended');
-    this.dashPlayer.fplot.plot();
+    if (this.dashPlayer.enable_fplot) {
+        this.dashPlayer.fplot.plot();
+    }
 };
 
 EventHandlers.prototype.getOpenHandler = function() {

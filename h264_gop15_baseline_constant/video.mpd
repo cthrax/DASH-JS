@@ -1,0 +1,21 @@
+<MPD type="static" xmlns="urn:mpeg:DASH:schema:MPD:2011" profiles="urn:mpeg:dash:profile:full:2011" minBufferTime="PT1.5S" mediaPresentationDuration="PT0H0M10.30S">
+ <ProgramInformation moreInformationURL="http://gpac.sourceforge.net">
+  <Title>Media Presentation Description for file h264_gop15_baseline_constant/h264_gop15_baseline_constant_mp4box.mp4 generated with GPAC </Title>
+ </ProgramInformation>
+ <Period start="PT0S" duration="PT0H0M10.30S">
+  <AdaptationSet>
+   <ContentComponent id="1" contentType="video"/>
+   <Representation id="1" mimeType="video/mp4" codecs="avc1.42c015" width="480" height="320" startWithSAP="false" bandwidth="385549">
+    <SegmentList timescale="1000" duration="2000">
+     <Initialization sourceURL="h264_gop15_baseline_constant/video.mp4"/>
+     <SegmentURL media="h264_gop15_baseline_constant/segment1.m4s"/>
+     <SegmentURL media="h264_gop15_baseline_constant/segment2.m4s"/>
+     <SegmentURL media="h264_gop15_baseline_constant/segment3.m4s"/>
+     <SegmentURL media="h264_gop15_baseline_constant/segment4.m4s"/>
+     <SegmentURL media="h264_gop15_baseline_constant/segment5.m4s"/>
+     <SegmentURL media="h264_gop15_baseline_constant/segment6.m4s"/>
+    </SegmentList>
+   </Representation>
+  </AdaptationSet>
+ </Period>
+</MPD>

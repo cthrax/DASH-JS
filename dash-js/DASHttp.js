@@ -28,6 +28,7 @@ function DASHttp(cacheControl, adaptation, bandwidth, dashPlayer) {
     this.dashPlayer = dashPlayer;
     this.adaptation = adaptation;
     this.myBandwidth = bandwidth;
+    this.rateMeasure = new RateMeasurement();
 }
 
 // this method is used by the mediaSourceBuffer to push segments in
@@ -42,6 +43,8 @@ DASHttp.prototype._fetch_segment = function(presentation, url, video, range, buf
     console.log('DASH JS Client fetching segment: ' + url);
     var instance = this;
     var xhr = new XMLHttpRequest();
+    xhr.presentation = presentation;
+    xhr.video = video;
     xhr.timeID = this._timeID;
     xhr.open('GET', url, true);
     xhr.setRequestHeader('Cache-Control', this._cacheControl);
@@ -56,24 +59,24 @@ DASHttp.prototype._fetch_segment = function(presentation, url, video, range, buf
     xhr.onload = function(e) {
 
         var data = new Uint8Array(this.response);
-        var mybps = endBitrateMeasurementByID(this.timeID, data.length);
+        var mybps = instance.rateMeasure.endBitrateMeasurementByID(this.timeID, data.length);
         instance.myBandwidth.calcWeightedBandwidth(parseInt(mybps));
         instance.adaptation.switchRepresentation();
 
         instance._push_segment_to_media_source_api(buffer, data);
 
         // FIXME: in the live case we need a heuristic because the last segment is not known
-        if (presentation.segmentList) {
-            if (presentation.curSegment >= presentation.segmentList.segments - 1 && video.webkitSourceEndOfStream != undefined) {
-                video.webkitSourceEndOfStream(HTMLMediaElement.EOS_NO_ERROR);
-            } else if (presentation.curSegment >= presentation.segmentList.segments - 1){
-                video.ended = true;
+        if (this.presentation.segmentList) {
+            if (this.presentation.curSegment >= this.presentation.segmentList.segments - 1 && this.video.webkitSourceEndOfStream != undefined) {
+                this.video.webkitSourceEndOfStream(HTMLMediaElement.EOS_NO_ERROR);
+            } else if (this.presentation.curSegment >= presentation.segmentList.segments - 1){
+                instance.dashPlayer.mse.endOfStream();
             }
         }
 
     };
 
-    beginBitrateMeasurementByID(this._timeID);
+    this.rateMeasure.beginBitrateMeasurementByID(this._timeID);
     this._timeID++;
     xhr.send();
 };
@@ -99,23 +102,24 @@ DASHttp.prototype._fetch_segment_for_buffer = function(presentation, url, video,
             // TODO-LIVE requestDate = new Date();
         }
         var data = new Uint8Array(this.response);
-        var mybps = endBitrateMeasurementByID(this.timeID, data.length);
+        var mybps = instance.rateMeasure.endBitrateMeasurementByID(this.timeID, data.length);
         instance.myBandwidth.calcWeightedBandwidth(parseInt(mybps));
 
         instance.adaptation.switchRepresentation(); // <--- mod this, if you wanna change the adaptation behavior... (e. g., include buffer state, ...)
 
+        //TODO: Pull from mpd
         // push the data into our buffer
-        buffer.push(data, 2);
+        this.buffer.push(data, 1);
 
         // FIXME: in the live case we need a heuristic because the last segment is not known
         if (presentation.segmentList && presentation.curSegment >= presentation.segmentList.segments - 1) {
-            buffer.streamEnded = true;
+            this.buffer.streamEnded = true;
         }
 
-        buffer.callback();
+        this.buffer.callback();
     };
 
-    beginBitrateMeasurementByID(this._timeID);
+    this.rateMeasure.beginBitrateMeasurementByID(this._timeID);
     this._timeID++;
     xhr.send();
 };
@@ -127,7 +131,7 @@ DASHttp.prototype._dashSourceOpen = function(buffer, presentation, video, mediaS
     video.width = presentation.width;
     video.height = presentation.height;
 
-    console.log("DASJ-JS: content type: " + presentation.mimeType + '; codecs="' + presentation.codecs + '"');
+    console.log("DASH-JS: content type: " + presentation.mimeType + '; codecs="' + presentation.codecs + '"');
     addSourceBuffer(mediaSource, buffer.id, presentation.mimeType + '; codecs="' + presentation.codecs + '"');
 
     var baseURL = presentation.baseURL != undefined ? presentation.baseURL : '';
@@ -148,7 +152,6 @@ DASHttp.prototype._dashSourceOpen = function(buffer, presentation, video, mediaS
         this._fetch_segment(presentation, baseURL + nextChunk.src, video, nextChunk.range, buffer);
         
     }
-
 };
 
 DASHttp.prototype._dashFetchSegmentBuffer = function(presentation, video, buffer) {

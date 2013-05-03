@@ -141,5 +141,6 @@ BaseBuffer.prototype.add = function(data) {
 BaseBuffer.prototype.get = function() {
     console.log("Getting chunk: " + this.buffer.first % this.buffer.size);
     console.log("Fill state: " + this.fillState.seconds);
-    return this.buffer.array[this.buffer.first++ % this.buffer.size];
+    var buf = this.buffer.array[this.buffer.first++ % this.buffer.size];
+    return buf;
 };

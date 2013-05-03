@@ -31,7 +31,6 @@ function RateBasedAdaptation(mpd, video, bandwidth) {
     AdaptationLogic.call(this, mpd, video);
     this.bandwidth = bandwidth;
     console.log("DASH JS using adaptation: Rate Based Adaptation");
-
 }
 
 RateBasedAdaptation.prototype.switchRepresentation = function() {

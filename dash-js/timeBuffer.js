@@ -1,7 +1,7 @@
 /*
  * timeBuffer.js
  *****************************************************************************
- * Copyright (C) 2012 - 2013 Alpen-Adria-Universität Klagenfurt
+ * Copyright (C) 2012 - 2013 Alpen-Adria-Universitï¿½t Klagenfurt
  *
  * Created on: Feb 13, 2012
  * Authors: Benjamin Rainer <benjamin.rainer@itec.aau.at>
@@ -42,18 +42,18 @@ function init_timeBuffer(criticalLevel,buffersize,mediaAPI, videoElement)
 			_timeBuffer.drain("seconds",_timeBuffer.videoElement.currentTime - _timeBuffer.lastTime,object); // this will go down the sink and will call the refill through the eventHandler
 			_timeBuffer.lastTime = _timeBuffer.videoElement.currentTime;
 			//setTimeout(function(){_timeBuffer.bufferStateListener(object)},100);	
-		}
+		};
 	
     timeBuffer.prototype.getFillLevel = function()
     {
         return this.state("seconds");
-    }
+    };
 
     timeBuffer.prototype.push = function(segment, segmentDuration)
     {
  		this.add(segment);
 		this.fillState.seconds += segmentDuration;
-    }	
+    };
 
 		
 	timeBuffer.prototype.refill = function(object){
@@ -69,7 +69,7 @@ function init_timeBuffer(criticalLevel,buffersize,mediaAPI, videoElement)
 			object.fillState.seconds -= 2;
 			_push_segment_to_medie_source_api(object.get());
 		}*/
-	}
+	};
     
 	_timeBuffer = new timeBuffer();
 	_timeBuffer.criticalState.seconds = criticalLevel;

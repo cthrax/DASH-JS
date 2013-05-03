@@ -60,20 +60,14 @@ function overrideMediaSource() {
 
 function sourceBufferAppend(mediaSource, id, data, dashPlayer) {
     if (mediaSource.sourceBuffers[id] != undefined) {
-        console.log("[STATUS] MediaSource Before: ");
-        console.log("Readystate: " + mediaSource.readyState);
-        console.log(mediaSource);
         mediaSource.sourceBuffers[id].append(data);
-        console.log("[STATUS]MediaSource After: ");
-        console.log("Readystate: " + mediaSource.readyState);
-        console.log(mediaSource);
     } else {
         console.log("Attempting to append to non-existent buffer.");
     }
 }
 
 function addSourceBuffer(mediaSource, id, type) {
-
+    console.log("Adding source buffer: " + id + ":" + type);
     mediaSource.addSourceBuffer(type);
 }
 

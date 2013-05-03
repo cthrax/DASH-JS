@@ -1,7 +1,7 @@
 /*
  * fPlot.js
  *****************************************************************************
- * Copyright (C) 2012 - 2013 Alpen-Adria-Universität Klagenfurt
+ * Copyright (C) 2012 - 2013 Alpen-Adria-Universitï¿½t Klagenfurt
  *
  * Created on: Feb 13, 2012
  * Authors: Benjamin Rainer <benjamin.rainer@itec.aau.at>
@@ -54,18 +54,18 @@ function fPlot(_canvas, period, width, height) // period will give us the max pe
 fPlot.prototype.initNewFunction = function (type) {
 
 	this.f[type] = new Object();
-	this.f[type].cnt = 0
+	this.f[type].cnt = 0;
 	this.f[type].values = new Array();
 	this.f[type].timeStamps = new Array();
 
-}
+};
 
 fPlot.prototype.updateOnlyPlaybackTime = function(value, type)
 {
     
     
     
-}
+};
 
 fPlot.prototype.update = function(value, type)
 {
@@ -73,7 +73,7 @@ fPlot.prototype.update = function(value, type)
 	this.f[type].timeStamps[this.f[type].cnt] = new Date().getTime();
 	this.f[type].cnt++;
 	this.plot();
-}
+};
 
 fPlot.prototype.plot = function()
 {
@@ -218,4 +218,4 @@ fPlot.prototype.plot = function()
 		this.canvas.closePath();
 
 	}
-}
+};

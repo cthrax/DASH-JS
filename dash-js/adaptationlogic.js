@@ -25,9 +25,18 @@
 AdaptationLogic.prototype.constructor = AdaptationLogic;
 function AdaptationLogic(mpd, video) {
     this.mpd = mpd;
+    this.findBestRepresentation();
     this.identifier = 1;
+    this.resolutionSwitch = 0;
+    this.mediaElement = video;
+
+    this.observers = new Array();
+    this.observer_num = 0;
+}
+
+AdaptationLogic.prototype.findBestRepresentation = function() {
     var i = 0;
-    var n = parseInt(mpd.period[0].group[0].representation[0].bandwidth);
+    var n = parseInt(this.mpd.period[0].group[0].representation[0].bandwidth);
     var m = 0;
     this.mpd.period[0].group[0].representation.forEach(function(_rel) {
 
@@ -43,23 +52,23 @@ function AdaptationLogic(mpd, video) {
                     + m + " with bandwidth: " + n);
 
     this.representationID = m;
-    this.lowestRepresentation = mpd.period[0].group[0].representation[m];
-    this.currentRepresentation = mpd.period[0].group[0].representation[m];
+    this.lowestRepresentation = this.mpd.period[0].group[0].representation[m];
+    this.currentRepresentation = this.mpd.period[0].group[0].representation[m];
     
     if (this.currentRepresentation.baseURL == false) {
-        this.currentRepresentation.baseURL = mpd.baseURL;
+        this.currentRepresentation.baseURL = this.mpd.baseURL;
     }
     
     if (this.lowestRepresentation.baseURL == false) {
-        this.lowestRepresentation.baseURL = mpd.baseURL;
+        this.lowestRepresentation.baseURL = this.mpd.baseURL;
     }
     this.currentRepresentation.curSegment = 0;
-    this.resolutionSwitch = 0;
-    this.mediaElement = video;
+};
 
-    this.observers = new Array();
-    this.observer_num = 0;
-}
+AdaptationLogic.prototype.setMpd = function(mpd) {
+    this.mpd = mpd;
+    this.findBestRepresentation();
+};
 
 AdaptationLogic.prototype.addObserver = function(_obj) {
     this.observers[this.observer_num++] = _obj;
@@ -69,7 +78,9 @@ AdaptationLogic.prototype.addObserver = function(_obj) {
 AdaptationLogic.prototype.notify = function() {
     if (this.observers.length > 0) {
         for ( var i = 0; i < this.observers.length; i++) {
-            this.observers[i].update(parseInt(this.currentRepresentation.bandwidth), this.identifier);
+            if (this.observers[i] != undefined && this.observers[i].update != undefined) {
+                this.observers[i].update(parseInt(this.currentRepresentation.bandwidth), this.identifier);
+            }
         }
     }
 };

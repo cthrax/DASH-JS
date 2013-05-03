@@ -28,6 +28,7 @@ MPD.rootElement.profile = "profiles";
 MPD.rootElement.type = "type";
 MPD.rootElement.mediaPresentationDuration = "mediaPresentationDuration";
 MPD.rootElement.minBufferTime = "minBufferTime";
+MPD.rootElement.minUpdatePeriod = "minimumUpdatePeriod"
 MPD.rootElement.availabilityStartTime = "availabilityStartTime";
 MPD.baseURL = new Object();
 MPD.baseURL.name = "BaseURL";
@@ -36,9 +37,7 @@ MPD.period.name = "Period";
 MPD.period.start = "start";
 MPD.group = new Object();
 MPD.group.name = "AdaptationSet";
-MPD.group.bitstreamSwitchting = "bitstreamSwitching"; // tells wether
-                                                        // bitstream switching
-                                                        // is allowed or not
+MPD.group.bitstreamSwitchting = "bitstreamSwitching"; // tells whether bitstream switching is allowed or not
 MPD.representation = new Object();
 MPD.representation.name = "Representation";
 MPD.representation.id = "id";
@@ -57,6 +56,7 @@ MPD.initialization.range = "range";
 MPD.segmentList = new Object();
 MPD.segmentList.name = "SegmentList";
 MPD.segmentList.duration = "duration";
+MPD.segmentList.timescale = "timescale";
 MPD.segmentURL = new Object();
 MPD.segmentURL.name = "SegmentURL";
 MPD.segmentURL.src = "media";
@@ -130,7 +130,7 @@ function parsePT(str) {
         _tm += cc(_in, type);
         _in = "";
     }
-    console.log("Results of parser: " + _tm);
+    //console.log("Results of parser: " + _tm);
     return _tm;
 }
 
@@ -160,6 +160,9 @@ function MPDParser(__mpd) {
     console.log(this.parser);
     this.pmpd = new Object();
     this.rmpd = new Object();
+    this.representation = new Object();
+    this.representation.pmpd = this.pmpd;
+    this.representation.rmpd = this.rmpd;
     __mpd.trim();
     __mpd.replace(/(\r\n)/g, "");
     this.mpd = this.parser(__mpd);
@@ -169,7 +172,7 @@ MPDParser.prototype.parseInitializationFromRepresentation = function(representat
     initNode = node.childNodes;
     for (var i = 0; i < initNode.length; i++) {
         if (initNode.item(i).nodeName == MPD.initialization.name) {
-            this.parseInitialization(respresentations, periods, groups, initNode.item(i));
+            this.parseInitialization(representations, periods, groups, initNode.item(i));
         }
     }
 };
@@ -426,7 +429,8 @@ MPDParser.prototype.parse = function() {
         }
 
     }
-
+    
+    return this.representation;
 };
 
 MPDParser.prototype.parseAvailabilityStartTime = function(str_startTime) {
@@ -437,34 +441,4 @@ MPDParser.prototype.parseAvailabilityStartTime = function(str_startTime) {
     } else {
         return Math.floor((nowTime - startTime)/1000);
     }
-};
-
-MPDLoader.bps = 1;
-
-function MPDLoader(callback) {
-    this.callback = callback;
-}
-
-MPDLoader.prototype._loadMPD = function() {
-    if (this.xmlHttp.readyState != 4) {
-        return;
-    }
-    
-    MPDLoader.bps = endBitrateMeasurement(this.xmlHttp.responseText.length);
-    console.log("Bitrate:" + bps + " bps");
-    this.mpdparser = new MPDParser(this.xmlHttp.responseText);
-    this.mpdparser.parse();
-    this.callback();
-};
-
-MPDLoader.prototype.loadMPD = function(mpdURL) {
-    console.log(mpdURL);
-    var instance = this;
-    this.xmlHttp = new XMLHttpRequest();
-    this.xmlHttp.onreadystatechange = function() { instance._loadMPD(); };
-    this.xmlHttp.open("GET", mpdURL, true);
-    this.xmlHttp.setRequestHeader('Cache-Control', 'no-cache');
-    this.xmlHttp.send(null);
-
-    beginBitrateMeasurement();
 };

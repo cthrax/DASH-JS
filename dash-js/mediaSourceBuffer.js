@@ -23,6 +23,8 @@
  *****************************************************************************/
 var _mediaSourceBuffer;
 
+MediaSourceBuffer.prototype = new BaseBuffer();
+MediaSourceBuffer.prototype.constructor = MediaSourceBuffer;
 function MediaSourceBuffer(id, criticalLevel, buffersize, mediaAPI, dashPlayer) {
     var instance = this;
     this._eventHandlers = new Object();
@@ -34,43 +36,58 @@ function MediaSourceBuffer(id, criticalLevel, buffersize, mediaAPI, dashPlayer) 
     this.doRefill = false;
     this.id = id;
     this.isOverlayBuffer = true;
-    this.isOverlayBuffer = true;
     this.criticalState.seconds = criticalLevel;
     this.bufferSize.maxseconds = buffersize;
     this.mediaAPI = mediaAPI;
     this.dashPlayer = dashPlayer;
     this.lastTime = 0;
-    this.playbackTimePlot = dashPlayer.fplot;
+    if (dashPlayer.enable_fplot) {
+        this.playbackTimePlot = dashPlayer.fplot;
+    }
     this.registerEventHandler("minimumLevel", function () { instance.signalRefill(); });
     
-    this.initBufferArray("seconds", 2);
+    this.minBuffer = parsePT(this.dashPlayer.mpd.pmpd.minBufferTime);
+    //TODO: Pull from mpd
+    this.initBufferArray("seconds", this.minBuffer);
 }
-
-MediaSourceBuffer.prototype = new BaseBuffer();
-MediaSourceBuffer.prototype.constructor = MediaSourceBuffer;
 
 MediaSourceBuffer.prototype.addEventHandler = function(fn) {
     // handlers will get the fillstate ...
-
     this._eventHandlers.handlers[this._eventHandlers.cnt] = new Object();
     this._eventHandlers.handlers[this._eventHandlers.cnt++].fn = fn;
 };
 
 MediaSourceBuffer.prototype.callEventHandlers = function() {
-
     for (var i = 0; i < this._eventHandlers.cnt; i++) {
-        this._eventHandlers.handlers[i].fn(this.getFillLevel(),
-                this.fillState.seconds, this.bufferSize.maxseconds);
+        this._eventHandlers.handlers[i].fn(this.getFillLevel(), this.fillState.seconds, this.bufferSize.maxseconds);
     }
 };
 
 MediaSourceBuffer.prototype.bufferStateListener = function() {
     var instance = this;
     this.mediaElementBuffered -= this.dashPlayer.videoTag.currentTime - this.lastTime;
+    //TODO: Determine which representation is in use, hardcode for now.
+    var segmentList = this.dashPlayer.mpd.pmpd.period[0].group[0].representation[0].segmentList;
+    var segmentSizeSec = (parseInt(segmentList.duration) / parseInt(segmentList.timescale)) / segmentList.segment.length;
+    
+    // TODO: Pull from mpd
+    if (this.mediaElementBuffered < this.minBuffer) {
 
-    if (this.mediaElementBuffered < 2) {
-
-        var rc = this.drain("seconds", 2);
+        // TODO: Pull from mpd
+        console.log("Draining " + segmentSizeSec + " seconds");
+        var rc = this.drain("seconds", segmentSizeSec);
+        
+        if (rc == -1 && this.dashPlayer.mpd.pmpd.type == "dynamic") {
+            console.log("need to fetch next mpd for more segments.");
+            this.streamEnded = false;
+            
+            // setup timeout, since we're breaking out early.
+            window.setTimeout(function() {
+                instance.bufferStateListener();
+            }, 100);
+            
+            return;
+        }
 
         if (rc == -1) {
             console.log("[BufferStateListener] - rc-1");
@@ -78,17 +95,18 @@ MediaSourceBuffer.prototype.bufferStateListener = function() {
             if (this.dashPlayer.videoTag.webkitSourceEndOfStream != undefined) {
                 this.dashPlayer.videoTag.webkitSourceEndOfStream(HTMLMediaElement.EOS_NO_ERROR);
             } else {
-                this.dashPlayer.videoTag.ended = true;
+                this.dashPlayer.mse.endOfStream();
             }
             return;
-        } else if (rc != 0) {
+        } else if (rc != 0 && rc != undefined) {
             console.log("[BufferStateListener] - rc!=0: " + this.mediaElementBuffered);
             this.dashPlayer.dashHttp._push_segment_to_media_source_api(this, rc); 
 
             // the new MediaAPI allows to have more than one source buffer for the
             // separate decoding chains (really nice) so we may support resolution
             // switching in the future
-            this.mediaElementBuffered += 2;
+            // TODO: Pull from mpd
+            this.mediaElementBuffered += segmentSizeSec;
 
         } else {
             console.log("[BufferStateListener] - Finished, no if.");
@@ -108,7 +126,7 @@ MediaSourceBuffer.prototype.callback = function() {
     var instance = this;
     window.setTimeout(function() {
         instance.refill();
-    }, 0, true);
+    }, 100);
 
 };
 
@@ -141,13 +159,11 @@ MediaSourceBuffer.prototype.refill = function() {
 
             console.log("Overlay buffer...");
             console.log(this);
-            console.log("Fill state of overlay buffer: "
-                    + this.fillState.seconds);
-
+            console.log("Fill state of overlay buffer: " + this.fillState.seconds);
             this.dashPlayer.dashHttp._dashFetchSegmentAsynchron(this);
-
             this.callEventHandlers();
         } else {
+            console.log("Do refill set to false.");
             this.doRefill = false;
         }
     }

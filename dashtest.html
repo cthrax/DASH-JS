@@ -5,6 +5,7 @@
 
 	<script src="dash-js/mediaSourceAPIAdaptation.js"></script>
 	<script src="dash-js/fplot.js"></script>
+	<script src="dash-js/mpdLoader.js"></script>
 	<script src="dash-js/mpdParser.js"></script>
 	<script src="dash-js/bandwidth.js"></script>
 	<script src="dash-js/adaptationlogic.js"></script>
@@ -12,42 +13,84 @@
 	<script src="dash-js/rate_measurement.js"></script>
 	<script src="dash-js/DASHttp.js"></script>
 	<script src="dash-js/basebuffer.js"></script>
+	<script src="dash-js/dumb_buffer.js"></script>
 	<script src="dash-js/timeBuffer.js"></script>
 	<script src="dash-js/mediaSourceBuffer.js"></script>
 	<script src="dash-js/eventHandlers.js"></script>
-	<script src="dash-js/dash.js"></script>
+	<script src="dash-js/dashplayer.js"></script>
+	<script src="dash-js/demo.js"></script>
 
 	</head>
-	<body>
+	<body onload="loaded()">
 	<h1> DASH-JS Showcase</h1>
 	This showcase will only work using Google Chrome with MediaSource API enabled (use chrome://flags to enable the API).
     <p>
         <br />
         Bandwidth in kbps (0=infinite[estimated]): <input type="text" id="bps" value="0"> <input type="button" value="Set" onClick="javascript:setBandwidth()"></p>
 	<p>
-	<video controls autoplay ></video>
-	<canvas id="graph" width="600" height="500"></canvas>
+	<div id="base">
+	</div>
     </p>
 		<script type="text/javascript">
  		    var bps = document.getElementById("bps");
+ 		    var list = Array();
  		    bps.value = Bandwidth.MAX_BANDWIDTH/1024;
 		    function setBandwidth() {
                 mybps = parseInt(bps.value)*1024;
                 Bandwidth.MAX_BANDWIDTH = mybps;
-
             }
             
             function getGraph() {
                 return document.getElementById('graph');
             }
             
-		    video = document.querySelector('video');
-		    var mpd = window.location.search.replace("?mpd=", "");
-		    if (mpd != "") {
-		      var dashPlayer = new DASHPlayer(video, mpd, getGraph);
-		    } else {
-		      alert("Must specify query param 'mpd=<relative mpd path>' 'mpd=h264_gop15_main_dash_dash.mpd' or 'mpd=bunny_ibmff_240.mpd'");
-		    }
+            function loaded1() {
+    		      var base = document.getElementById('base');
+                  for (var i = 0; i < 16; i++) {
+                     (function() {
+                         var div = document.createElement('div');
+                         div.setAttribute('style', 'background-color: black; height: 200px; width: 300px; border: solid 1px white; float: right');
+                         var video = document.createElement('video');
+                         video.controls = true;
+                         video.autoplay = true;
+                         video.width = '200';
+                         video.height = '200';
+                         video.setAttribute('style', 'margin-right: auto; margin-left: auto; display: block;');
+                         video.src = '/output.mp4';
+                         div.appendChild(video);
+                         base.appendChild(div);
+                  
+                         //list.push(new DASHPlayer(video, mpd, function() { return canvas; }, false));
+                     })();
+                  }
+            }
+            
+            function loaded() {
+                startDemo();
+            }
+            
+            function loaded1() {
+    		    if (mpd != "") {
+    		      var mpd = window.location.search.replace("?mpd=", "");
+    		      var base = document.getElementById('base');
+                  for (var i = 0; i < 1; i++) {
+                     (function() {
+                         var div = document.createElement('div');
+                         var video = document.createElement('video');
+                         video.controls = true;
+                         video.autoplay = true;
+                         var canvas = document.createElement('canvas');
+                         div.appendChild(video);
+                         div.appendChild(canvas);
+                         base.appendChild(div);
+                  
+                         list.push(new DASHPlayer(video, mpd, function() { return canvas; }, false));
+                     })();
+                  }
+               } else {
+		          alert("Must specify query param 'mpd=<relative mpd path>' 'mpd=h264_gop15_main_dash_dash.mpd' or 'mpd=bunny_ibmff_240.mpd'");
+               }
+            }
 		</script>
 	</body>
 </html>
